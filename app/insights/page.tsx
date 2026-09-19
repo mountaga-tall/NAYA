@@ -1,8 +1,10 @@
-export default function InsightsPage() {
-  const cycles = [28, 30, 27, 29, 31, 28];
+import BottomNav from "@/components/BottomNav";
 
+const cycles = [28, 30, 27, 29, 31, 28];
+
+export default function InsightsPage() {
   return (
-    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
+    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8">
           <p className="text-sm text-[#2C1A16]/50">
@@ -131,6 +133,8 @@ export default function InsightsPage() {
           Ces observations sont basées sur les données que tu
           renseignes. Elles ne constituent pas un diagnostic médical.
         </p>
+
+        <BottomNav />
       </div>
     </main>
   );
