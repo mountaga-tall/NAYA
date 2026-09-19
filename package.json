@@ -2,6 +2,7 @@
   "name": "naya-app",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,17 +10,23 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "dotenv": "17.2.2",
     "next": "latest",
+    "pg": "8.16.3",
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
+    "@types/pg": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "prisma": "7.10.0",
     "typescript": "latest"
   }
 }
