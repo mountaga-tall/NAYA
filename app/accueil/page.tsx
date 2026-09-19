@@ -1,8 +1,9 @@
 import Link from "next/link";
+import BottomNav from "@/components/BottomNav";
 
 export default function AccueilPage() {
   return (
-    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
+    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8 flex items-center justify-between">
           <div>
@@ -61,9 +62,11 @@ export default function AccueilPage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-2xl">🩸</p>
+
               <p className="mt-2 text-sm font-semibold">
                 Flux
               </p>
+
               <p className="mt-1 text-xs text-[#2C1A16]/50">
                 Pas encore indiqué
               </p>
@@ -71,9 +74,11 @@ export default function AccueilPage() {
 
             <div className="rounded-2xl bg-white p-4 shadow-sm">
               <p className="text-2xl">😊</p>
+
               <p className="mt-2 text-sm font-semibold">
                 Humeur
               </p>
+
               <p className="mt-1 text-xs text-[#2C1A16]/50">
                 Pas encore indiquée
               </p>
@@ -91,6 +96,8 @@ export default function AccueilPage() {
             basées sur les données que tu renseignes.
           </p>
         </section>
+
+        <BottomNav />
       </div>
     </main>
   );
