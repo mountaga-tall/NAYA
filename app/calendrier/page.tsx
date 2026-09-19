@@ -1,4 +1,4 @@
-"use client";
+import BottomNav from "@/components/BottomNav";
 
 const days = Array.from({ length: 31 }, (_, index) => index + 1);
 
@@ -8,7 +8,7 @@ const ovulationDay = 14;
 
 export default function CalendrierPage() {
   return (
-    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
+    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8 flex items-center justify-between">
           <div>
@@ -107,6 +107,8 @@ export default function CalendrierPage() {
         <button className="mt-6 w-full rounded-2xl border border-[#E7DDD8] bg-white px-6 py-4 font-bold text-[#6B2D5C]">
           ✏️ Modifier mes dates
         </button>
+
+        <BottomNav />
       </div>
     </main>
   );
