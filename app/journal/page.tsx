@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import BottomNav from "@/components/BottomNav";
 
 const fluxOptions = ["Léger", "Moyen", "Abondant", "Spotting"];
+
 const douleurOptions = [
   "Tête",
   "Ventre",
   "Bas du dos",
   "Seins sensibles",
 ];
+
 const humeurOptions = [
   "Calme",
   "Heureuse",
@@ -35,7 +38,7 @@ export default function JournalPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
+    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8">
           <p className="text-sm text-[#2C1A16]/50">
@@ -64,7 +67,7 @@ export default function JournalPage() {
                 className={`rounded-full px-4 py-3 text-sm font-semibold ${
                   flux === option
                     ? "bg-[#D96C5B] text-white"
-                    : "bg-white border border-[#E7DDD8]"
+                    : "border border-[#E7DDD8] bg-white"
                 }`}
               >
                 {option}
@@ -89,7 +92,7 @@ export default function JournalPage() {
                   className={`rounded-full px-4 py-3 text-sm font-semibold ${
                     selected
                       ? "bg-[#6B2D5C] text-white"
-                      : "bg-white border border-[#E7DDD8]"
+                      : "border border-[#E7DDD8] bg-white"
                   }`}
                 >
                   {option}
@@ -112,7 +115,7 @@ export default function JournalPage() {
                 className={`rounded-full px-4 py-3 text-sm font-semibold ${
                   humeur === option
                     ? "bg-[#D96C5B] text-white"
-                    : "bg-white border border-[#E7DDD8]"
+                    : "border border-[#E7DDD8] bg-white"
                 }`}
               >
                 {option}
@@ -138,6 +141,8 @@ export default function JournalPage() {
         >
           Enregistrer
         </button>
+
+        <BottomNav />
       </div>
     </main>
   );
