@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import BottomNav from "@/components/BottomNav";
 
 export default function ProfilPage() {
   const [discreetMode, setDiscreetMode] = useState(false);
 
   return (
-    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
+    <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8">
           <p className="text-sm text-[#2C1A16]/50">
@@ -117,6 +118,8 @@ export default function ProfilPage() {
             Naya est conçu pour te donner le contrôle sur tes données.
           </p>
         </section>
+
+        <BottomNav />
       </div>
     </main>
   );
