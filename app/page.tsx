@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#FDFBF7] text-[#2C1A16]">
@@ -19,9 +21,12 @@ export default function Home() {
           </p>
         </div>
 
-        <button className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 text-base font-bold text-white shadow-lg transition hover:opacity-90">
+        <Link
+          href="/onboarding"
+          className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 text-center text-base font-bold text-white shadow-lg transition hover:opacity-90"
+        >
           Commencer gratuitement
-        </button>
+        </Link>
 
         <div className="mt-8 grid grid-cols-3 gap-3 text-center">
           <div className="rounded-2xl bg-white p-4 shadow-sm">
