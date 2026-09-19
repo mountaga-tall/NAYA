@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Goal {
+  TRACK
+  PREVENT
+  CONCEIVE
+}
+
+enum Flow {
+  LIGHT
+  MEDIUM
+  HEAVY
+  SPOTTING
+}
+
+enum Mood {
+  CALM
+  HAPPY
+  SAD
+  IRRITABLE
+  ANXIOUS
+}
+
+model User {
+  id               String     @id @default(uuid())
+  firstName        String?
+  email            String?    @unique
+  avgCycleLength   Int        @default(28)
+  avgPeriodLength  Int        @default(5)
+  goal             Goal       @default(TRACK)
+  discreetMode     Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  cycles           Cycle[]
+  dailyLogs        DailyLog[]
+}
+
+model Cycle {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([startDate])
+}
+
+model DailyLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logDate    DateTime
+  flow       Flow?
+  symptoms   String[]
+  mood       Mood?
+  energy     Int?
+  sleep      Int?
+  discharge  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, logDate])
+  @@index([userId])
+  @@index([logDate])
+}
