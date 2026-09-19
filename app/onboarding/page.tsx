@@ -1,9 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function OnboardingPage() {
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
+  const [lastPeriodDate, setLastPeriodDate] = useState("");
+  const [cycleLength, setCycleLength] = useState(28);
+  const [goal, setGoal] = useState("");
+
+  function finishOnboarding() {
+    router.push("/accueil");
+  }
 
   return (
     <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
@@ -13,6 +23,7 @@ export default function OnboardingPage() {
             <span className="font-semibold text-[#6B2D5C]">
               Naya
             </span>
+
             <span className="text-[#2C1A16]/50">
               Étape {step} / 3
             </span>
@@ -46,6 +57,8 @@ export default function OnboardingPage() {
 
             <input
               type="date"
+              value={lastPeriodDate}
+              onChange={(event) => setLastPeriodDate(event.target.value)}
               className="w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
             />
 
@@ -75,8 +88,9 @@ export default function OnboardingPage() {
             <div className="rounded-3xl bg-white p-6 shadow-sm">
               <div className="text-center">
                 <span className="text-5xl font-bold text-[#D96C5B]">
-                  28
+                  {cycleLength}
                 </span>
+
                 <span className="ml-2 text-[#2C1A16]/60">
                   jours
                 </span>
@@ -86,7 +100,10 @@ export default function OnboardingPage() {
                 type="range"
                 min="21"
                 max="35"
-                defaultValue="28"
+                value={cycleLength}
+                onChange={(event) =>
+                  setCycleLength(Number(event.target.value))
+                }
                 className="mt-8 w-full accent-[#D96C5B]"
               />
 
@@ -127,29 +144,62 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-3">
-              <button className="w-full rounded-2xl border border-[#E7DDD8] bg-white p-5 text-left shadow-sm">
-                <div className="font-bold">🌸 Suivre mon cycle</div>
+              <button
+                onClick={() => setGoal("TRACK")}
+                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
+                  goal === "TRACK"
+                    ? "border-[#D96C5B] bg-[#F4D8D8]"
+                    : "border-[#E7DDD8] bg-white"
+                }`}
+              >
+                <div className="font-bold">
+                  🌸 Suivre mon cycle
+                </div>
+
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Comprendre mon rythme et mes symptômes.
                 </div>
               </button>
 
-              <button className="w-full rounded-2xl border border-[#E7DDD8] bg-white p-5 text-left shadow-sm">
-                <div className="font-bold">🛡️ Éviter une grossesse</div>
+              <button
+                onClick={() => setGoal("PREVENT")}
+                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
+                  goal === "PREVENT"
+                    ? "border-[#D96C5B] bg-[#F4D8D8]"
+                    : "border-[#E7DDD8] bg-white"
+                }`}
+              >
+                <div className="font-bold">
+                  🛡️ Éviter une grossesse
+                </div>
+
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Les estimations de Naya ne remplacent pas une contraception.
                 </div>
               </button>
 
-              <button className="w-full rounded-2xl border border-[#E7DDD8] bg-white p-5 text-left shadow-sm">
-                <div className="font-bold">👶 Essayer de concevoir</div>
+              <button
+                onClick={() => setGoal("CONCEIVE")}
+                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
+                  goal === "CONCEIVE"
+                    ? "border-[#D96C5B] bg-[#F4D8D8]"
+                    : "border-[#E7DDD8] bg-white"
+                }`}
+              >
+                <div className="font-bold">
+                  👶 Essayer de concevoir
+                </div>
+
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Suivre mon cycle dans un projet de conception.
                 </div>
               </button>
             </div>
 
-            <button className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg">
+            <button
+              onClick={finishOnboarding}
+              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
+            >
               Créer mon espace
             </button>
 
