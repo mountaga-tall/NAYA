@@ -63,7 +63,7 @@ export default function JournalPage() {
         },
         body: JSON.stringify({
           logDate: getTodayDate(),
-          flow,
+          flow: flux,
           symptoms: douleurs,
           mood: humeur,
           notes,
@@ -83,7 +83,7 @@ export default function JournalPage() {
       console.error(error);
 
       setMessage(
-        "Une erreur est survenue. Vérifie que Naya est bien connectée."
+        "Une erreur est survenue pendant l'enregistrement."
       );
     } finally {
       setSaving(false);
