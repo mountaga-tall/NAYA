@@ -3,27 +3,45 @@
 import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 
-const fluxOptions = ["Léger", "Moyen", "Abondant", "Spotting"];
+const fluxOptions = [
+  { label: "Léger", value: "LIGHT" },
+  { label: "Moyen", value: "MEDIUM" },
+  { label: "Abondant", value: "HEAVY" },
+  { label: "Spotting", value: "SPOTTING" },
+];
 
 const douleurOptions = [
-  "Tête",
-  "Ventre",
-  "Bas du dos",
-  "Seins sensibles",
+  { label: "Tête", value: "HEADACHE" },
+  { label: "Ventre", value: "CRAMPS" },
+  { label: "Bas du dos", value: "LOW_BACK_PAIN" },
+  { label: "Seins sensibles", value: "TENDER_BREASTS" },
 ];
 
 const humeurOptions = [
-  "Calme",
-  "Heureuse",
-  "Triste",
-  "Irritable",
-  "Anxieuse",
+  { label: "Calme", value: "CALM" },
+  { label: "Heureuse", value: "HAPPY" },
+  { label: "Triste", value: "SAD" },
+  { label: "Irritable", value: "IRRITABLE" },
+  { label: "Anxieuse", value: "ANXIOUS" },
 ];
+
+function getTodayDate() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 export default function JournalPage() {
   const [flux, setFlux] = useState<string | null>(null);
   const [douleurs, setDouleurs] = useState<string[]>([]);
   const [humeur, setHumeur] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   function toggleDouleur(value: string) {
     setDouleurs((current) =>
@@ -33,8 +51,43 @@ export default function JournalPage() {
     );
   }
 
-  function saveLog() {
-    alert("Ton suivi a été enregistré. 🌸");
+  async function saveLog() {
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/logs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          logDate: getTodayDate(),
+          flow,
+          symptoms: douleurs,
+          mood: humeur,
+          notes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Impossible d'enregistrer le suivi."
+        );
+      }
+
+      setMessage("Ton suivi a bien été enregistré dans Naya. 🌸");
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        "Une erreur est survenue. Vérifie que Naya est bien connectée."
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -62,15 +115,16 @@ export default function JournalPage() {
           <div className="flex flex-wrap gap-2">
             {fluxOptions.map((option) => (
               <button
-                key={option}
-                onClick={() => setFlux(option)}
+                key={option.value}
+                type="button"
+                onClick={() => setFlux(option.value)}
                 className={`rounded-full px-4 py-3 text-sm font-semibold ${
-                  flux === option
+                  flux === option.value
                     ? "bg-[#D96C5B] text-white"
                     : "border border-[#E7DDD8] bg-white"
                 }`}
               >
-                {option}
+                {option.label}
               </button>
             ))}
           </div>
@@ -83,19 +137,20 @@ export default function JournalPage() {
 
           <div className="flex flex-wrap gap-2">
             {douleurOptions.map((option) => {
-              const selected = douleurs.includes(option);
+              const selected = douleurs.includes(option.value);
 
               return (
                 <button
-                  key={option}
-                  onClick={() => toggleDouleur(option)}
+                  key={option.value}
+                  type="button"
+                  onClick={() => toggleDouleur(option.value)}
                   className={`rounded-full px-4 py-3 text-sm font-semibold ${
                     selected
                       ? "bg-[#6B2D5C] text-white"
                       : "border border-[#E7DDD8] bg-white"
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </button>
               );
             })}
@@ -110,15 +165,16 @@ export default function JournalPage() {
           <div className="flex flex-wrap gap-2">
             {humeurOptions.map((option) => (
               <button
-                key={option}
-                onClick={() => setHumeur(option)}
+                key={option.value}
+                type="button"
+                onClick={() => setHumeur(option.value)}
                 className={`rounded-full px-4 py-3 text-sm font-semibold ${
-                  humeur === option
+                  humeur === option.value
                     ? "bg-[#D96C5B] text-white"
                     : "border border-[#E7DDD8] bg-white"
                 }`}
               >
-                {option}
+                {option.label}
               </button>
             ))}
           </div>
@@ -130,17 +186,27 @@ export default function JournalPage() {
           </h2>
 
           <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
             placeholder="Écris quelque chose..."
             className="min-h-32 w-full resize-none rounded-2xl border border-[#E7DDD8] bg-white p-4 text-sm outline-none focus:border-[#D96C5B]"
           />
         </section>
 
         <button
+          type="button"
           onClick={saveLog}
-          className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
+          disabled={saving}
+          className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Enregistrer
+          {saving ? "Enregistrement..." : "Enregistrer"}
         </button>
+
+        {message && (
+          <div className="mt-4 rounded-2xl bg-white p-4 text-center text-sm shadow-sm">
+            {message}
+          </div>
+        )}
 
         <BottomNav />
       </div>
