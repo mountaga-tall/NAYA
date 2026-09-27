@@ -17,14 +17,17 @@ export async function GET() {
       where: {
         id: DEMO_USER_ID,
       },
-      select: {
-        id: true,
-        firstName: true,
-        email: true,
-        avgCycleLength: true,
-        avgPeriodLength: true,
-        goal: true,
-        discreetMode: true,
+      include: {
+        cycles: {
+          orderBy: {
+            startDate: "asc",
+          },
+        },
+        dailyLogs: {
+          orderBy: {
+            logDate: "asc",
+          },
+        },
       },
     });
 
@@ -41,7 +44,17 @@ export async function GET() {
 
     return Response.json({
       success: true,
-      profile: user,
+      profile: {
+        id: user.id,
+        firstName: user.firstName,
+        email: user.email,
+        avgCycleLength: user.avgCycleLength,
+        avgPeriodLength: user.avgPeriodLength,
+        goal: user.goal,
+        discreetMode: user.discreetMode,
+      },
+      cycles: user.cycles,
+      dailyLogs: user.dailyLogs,
     });
   } catch (error) {
     console.error(error);
@@ -130,6 +143,49 @@ export async function PATCH(request: Request) {
     return Response.json(
       {
         error: "Impossible de mettre à jour le profil.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: DEMO_USER_ID,
+      },
+    });
+
+    if (!user) {
+      return Response.json(
+        {
+          error: "Utilisateur introuvable.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    await prisma.user.delete({
+      where: {
+        id: DEMO_USER_ID,
+      },
+    });
+
+    return Response.json({
+      success: true,
+      message: "Compte et données supprimés.",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return Response.json(
+      {
+        error: "Impossible de supprimer le compte et les données.",
       },
       {
         status: 500,
