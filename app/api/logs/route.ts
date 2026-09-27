@@ -2,6 +2,67 @@ import prisma from "@/lib/prisma";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
 
+function getTodayRange() {
+  const now = new Date();
+
+  const start = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0,
+    0,
+    0,
+    0
+  );
+
+  return { start, end };
+}
+
+export async function GET() {
+  try {
+    const { start, end } = getTodayRange();
+
+    const log = await prisma.dailyLog.findFirst({
+      where: {
+        userId: DEMO_USER_ID,
+        logDate: {
+          gte: start,
+          lt: end,
+        },
+      },
+      orderBy: {
+        logDate: "desc",
+      },
+    });
+
+    return Response.json({
+      success: true,
+      log,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return Response.json(
+      {
+        error: "Impossible de récupérer le suivi du jour.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -42,11 +103,13 @@ export async function POST(request: Request) {
       },
     });
 
+    const normalizedDate = new Date(`${logDate}T00:00:00`);
+
     const log = await prisma.dailyLog.upsert({
       where: {
         userId_logDate: {
           userId: DEMO_USER_ID,
-          logDate: new Date(logDate),
+          logDate: normalizedDate,
         },
       },
       update: {
@@ -60,7 +123,7 @@ export async function POST(request: Request) {
       },
       create: {
         userId: DEMO_USER_ID,
-        logDate: new Date(logDate),
+        logDate: normalizedDate,
         flow: flow ?? null,
         symptoms: symptoms ?? [],
         mood: mood ?? null,
