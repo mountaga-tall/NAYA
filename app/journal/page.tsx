@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "@/components/BottomNav";
+import { getTodayLog, upsertLog } from "@/lib/storage";
 
 const fluxOptions = [
   { label: "Léger", value: "LIGHT" },
@@ -27,11 +28,9 @@ const humeurOptions = [
 
 function getTodayDate() {
   const today = new Date();
-
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 }
 
@@ -42,6 +41,16 @@ export default function JournalPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const current = getTodayLog();
+    if (!current) return;
+
+    setFlux(current.flow ?? null);
+    setDouleurs(current.symptoms ?? []);
+    setHumeur(current.mood ?? null);
+    setNotes(current.notes ?? "");
+  }, []);
 
   function toggleDouleur(value: string) {
     setDouleurs((current) =>
@@ -56,35 +65,18 @@ export default function JournalPage() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/logs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          logDate: getTodayDate(),
-          flow: flux,
-          symptoms: douleurs,
-          mood: humeur,
-          notes,
-        }),
+      upsertLog({
+        logDate: getTodayDate(),
+        flow: flux,
+        symptoms: douleurs,
+        mood: humeur,
+        notes,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Impossible d'enregistrer le suivi."
-        );
-      }
 
       setMessage("Ton suivi a bien été enregistré dans Naya. 🌸");
     } catch (error) {
       console.error(error);
-
-      setMessage(
-        "Une erreur est survenue pendant l'enregistrement."
-      );
+      setMessage("Une erreur est survenue. Vérifie que Naya est bien connectée.");
     } finally {
       setSaving(false);
     }
@@ -94,24 +86,13 @@ export default function JournalPage() {
     <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
         <header className="mb-8">
-          <p className="text-sm text-[#2C1A16]/50">
-            Aujourd'hui
-          </p>
-
-          <h1 className="mt-1 text-3xl font-bold">
-            Comment te sens-tu ?
-          </h1>
-
-          <p className="mt-2 text-sm text-[#2C1A16]/60">
-            Cela prend moins d'une minute.
-          </p>
+          <p className="text-sm text-[#2C1A16]/50">Aujourd'hui</p>
+          <h1 className="mt-1 text-3xl font-bold">Comment te sens-tu ?</h1>
+          <p className="mt-2 text-sm text-[#2C1A16]/60">Cela prend moins d'une minute.</p>
         </header>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">
-            🩸 Flux
-          </h2>
-
+          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">🩸 Flux</h2>
           <div className="flex flex-wrap gap-2">
             {fluxOptions.map((option) => (
               <button
@@ -131,10 +112,7 @@ export default function JournalPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">
-            😣 Douleurs
-          </h2>
-
+          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">😣 Douleurs</h2>
           <div className="flex flex-wrap gap-2">
             {douleurOptions.map((option) => {
               const selected = douleurs.includes(option.value);
@@ -158,10 +136,7 @@ export default function JournalPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">
-            😊 Humeur
-          </h2>
-
+          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">😊 Humeur</h2>
           <div className="flex flex-wrap gap-2">
             {humeurOptions.map((option) => (
               <button
@@ -181,10 +156,7 @@ export default function JournalPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">
-            📝 Note personnelle
-          </h2>
-
+          <h2 className="mb-3 text-lg font-bold text-[#6B2D5C]">📝 Note personnelle</h2>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}

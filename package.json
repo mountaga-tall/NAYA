@@ -28,5 +28,8 @@
     "eslint-config-next": "latest",
     "prisma": "7.10.0",
     "typescript": "latest"
+  },
+  "allowScripts": {
+    "prisma@7.10.0": true
   }
 }

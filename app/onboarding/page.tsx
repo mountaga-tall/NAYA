@@ -1,17 +1,39 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { readProfile, saveProfile, type Goal } from "@/lib/storage";
 
 export default function OnboardingPage() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
+  const [firstName, setFirstName] = useState("Amina");
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState(28);
-  const [goal, setGoal] = useState("");
+  const [goal, setGoal] = useState<Goal>("TRACK");
+
+  useEffect(() => {
+    const profile = readProfile();
+    if (!profile) return;
+
+    setFirstName(profile.firstName || "Amina");
+    setLastPeriodDate(profile.lastPeriodDate || "");
+    setCycleLength(profile.cycleLength || 28);
+    setGoal(profile.goal || "TRACK");
+  }, []);
 
   function finishOnboarding() {
+    if (!lastPeriodDate) return;
+
+    saveProfile({
+      firstName,
+      lastPeriodDate,
+      cycleLength,
+      goal,
+      discreetMode: false,
+    });
+
     router.push("/accueil");
   }
 
@@ -20,13 +42,8 @@ export default function OnboardingPage() {
       <div className="mx-auto max-w-md">
         <div className="mb-10">
           <div className="mb-3 flex items-center justify-between text-sm">
-            <span className="font-semibold text-[#6B2D5C]">
-              Naya
-            </span>
-
-            <span className="text-[#2C1A16]/50">
-              Étape {step} / 3
-            </span>
+            <span className="font-semibold text-[#6B2D5C]">Naya</span>
+            <span className="text-[#2C1A16]/50">Étape {step} / 3</span>
           </div>
 
           <div className="h-2 overflow-hidden rounded-full bg-[#F4D8D8]">
@@ -41,20 +58,24 @@ export default function OnboardingPage() {
           <section>
             <div className="mb-8 text-center">
               <div className="mb-4 text-5xl">🌸</div>
-
-              <h1 className="text-3xl font-bold">
-                Commençons doucement
-              </h1>
-
+              <h1 className="text-3xl font-bold">Commençons doucement</h1>
               <p className="mt-3 text-sm leading-6 text-[#2C1A16]/65">
-                Quand ont commencé tes dernières règles ?
+                Comment veux-tu que Naya t’appelle ?
               </p>
             </div>
 
-            <label className="mb-3 block text-sm font-semibold">
-              Date de début
-            </label>
+            <label className="mb-3 block text-sm font-semibold">Prénom</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value || "Amina")}
+              className="mb-6 w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
+              placeholder="Amina"
+            />
 
+            <label className="mb-3 block text-sm font-semibold">
+              Date de début des dernières règles
+            </label>
             <input
               type="date"
               value={lastPeriodDate}
@@ -63,8 +84,13 @@ export default function OnboardingPage() {
             />
 
             <button
-              onClick={() => setStep(2)}
-              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
+              type="button"
+              onClick={() => {
+                if (!lastPeriodDate) return;
+                setStep(2);
+              }}
+              disabled={!lastPeriodDate}
+              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
             >
               Suivant
             </button>
@@ -75,11 +101,7 @@ export default function OnboardingPage() {
           <section>
             <div className="mb-8 text-center">
               <div className="mb-4 text-5xl">📅</div>
-
-              <h1 className="text-3xl font-bold">
-                Ton rythme habituel
-              </h1>
-
+              <h1 className="text-3xl font-bold">Ton rythme habituel</h1>
               <p className="mt-3 text-sm leading-6 text-[#2C1A16]/65">
                 Combien de jours dure ton cycle en général ?
               </p>
@@ -87,13 +109,8 @@ export default function OnboardingPage() {
 
             <div className="rounded-3xl bg-white p-6 shadow-sm">
               <div className="text-center">
-                <span className="text-5xl font-bold text-[#D96C5B]">
-                  {cycleLength}
-                </span>
-
-                <span className="ml-2 text-[#2C1A16]/60">
-                  jours
-                </span>
+                <span className="text-5xl font-bold text-[#D96C5B]">{cycleLength}</span>
+                <span className="ml-2 text-[#2C1A16]/60">jours</span>
               </div>
 
               <input
@@ -101,9 +118,7 @@ export default function OnboardingPage() {
                 min="21"
                 max="35"
                 value={cycleLength}
-                onChange={(event) =>
-                  setCycleLength(Number(event.target.value))
-                }
+                onChange={(event) => setCycleLength(Number(event.target.value))}
                 className="mt-8 w-full accent-[#D96C5B]"
               />
 
@@ -114,6 +129,7 @@ export default function OnboardingPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => setStep(3)}
               className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
             >
@@ -121,6 +137,7 @@ export default function OnboardingPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => setStep(1)}
               className="mt-3 w-full py-3 text-sm font-semibold text-[#6B2D5C]"
             >
@@ -133,11 +150,7 @@ export default function OnboardingPage() {
           <section>
             <div className="mb-8 text-center">
               <div className="mb-4 text-5xl">💛</div>
-
-              <h1 className="text-3xl font-bold">
-                Que souhaites-tu faire ?
-              </h1>
-
+              <h1 className="text-3xl font-bold">Que souhaites-tu faire ?</h1>
               <p className="mt-3 text-sm leading-6 text-[#2C1A16]/65">
                 Tu pourras modifier ton choix plus tard.
               </p>
@@ -145,6 +158,7 @@ export default function OnboardingPage() {
 
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={() => setGoal("TRACK")}
                 className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
                   goal === "TRACK"
@@ -152,16 +166,14 @@ export default function OnboardingPage() {
                     : "border-[#E7DDD8] bg-white"
                 }`}
               >
-                <div className="font-bold">
-                  🌸 Suivre mon cycle
-                </div>
-
+                <div className="font-bold">🌸 Suivre mon cycle</div>
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Comprendre mon rythme et mes symptômes.
                 </div>
               </button>
 
               <button
+                type="button"
                 onClick={() => setGoal("PREVENT")}
                 className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
                   goal === "PREVENT"
@@ -169,16 +181,14 @@ export default function OnboardingPage() {
                     : "border-[#E7DDD8] bg-white"
                 }`}
               >
-                <div className="font-bold">
-                  🛡️ Éviter une grossesse
-                </div>
-
+                <div className="font-bold">🛡️ Éviter une grossesse</div>
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Les estimations de Naya ne remplacent pas une contraception.
                 </div>
               </button>
 
               <button
+                type="button"
                 onClick={() => setGoal("CONCEIVE")}
                 className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
                   goal === "CONCEIVE"
@@ -186,10 +196,7 @@ export default function OnboardingPage() {
                     : "border-[#E7DDD8] bg-white"
                 }`}
               >
-                <div className="font-bold">
-                  👶 Essayer de concevoir
-                </div>
-
+                <div className="font-bold">👶 Essayer de concevoir</div>
                 <div className="mt-1 text-sm text-[#2C1A16]/60">
                   Suivre mon cycle dans un projet de conception.
                 </div>
@@ -197,6 +204,7 @@ export default function OnboardingPage() {
             </div>
 
             <button
+              type="button"
               onClick={finishOnboarding}
               className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
             >
@@ -208,6 +216,7 @@ export default function OnboardingPage() {
             </p>
 
             <button
+              type="button"
               onClick={() => setStep(2)}
               className="mt-3 w-full py-3 text-sm font-semibold text-[#6B2D5C]"
             >
