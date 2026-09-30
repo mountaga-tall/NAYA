@@ -1,4 +1,4 @@
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import prisma from "@/lib/prisma";
@@ -10,6 +10,7 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 type RateLimitEntry = {
   failures: number;
+  windowEndsAt: number;
   blockedUntil: number;
 };
 
@@ -51,7 +52,7 @@ export function tooManyLoginAttempts(request: Request, email: string) {
     };
   }
 
-  if (now - entry.blockedUntil > LOGIN_WINDOW_MS) {
+  if (entry.windowEndsAt <= now) {
     loginRateLimit.delete(key);
   }
 
@@ -63,14 +64,19 @@ export function recordLoginFailure(request: Request, email: string) {
   const now = Date.now();
   const current = loginRateLimit.get(key);
 
-  if (!current || now - current.blockedUntil > LOGIN_WINDOW_MS) {
-    loginRateLimit.set(key, { failures: 1, blockedUntil: now + LOGIN_WINDOW_MS });
+  if (!current || current.windowEndsAt <= now) {
+    loginRateLimit.set(key, {
+      failures: 1,
+      windowEndsAt: now + LOGIN_WINDOW_MS,
+      blockedUntil: 0,
+    });
     return;
   }
 
   const failures = current.failures + 1;
   loginRateLimit.set(key, {
     failures,
+    windowEndsAt: current.windowEndsAt,
     blockedUntil: failures >= MAX_LOGIN_FAILURES ? now + LOGIN_BLOCK_MS : current.blockedUntil,
   });
 }
@@ -186,9 +192,4 @@ export function unauthorized() {
       headers: { "Cache-Control": "private, no-store" },
     }
   );
-}
-
-export async function serverOriginForLog() {
-  const h = await headers();
-  return h.get("host") || "";
 }
