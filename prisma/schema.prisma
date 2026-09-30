@@ -32,6 +32,7 @@ model User {
   id               String     @id @default(uuid())
   firstName        String?
   email            String?    @unique
+  passwordHash     String?
   avgCycleLength   Int        @default(28)
   avgPeriodLength  Int        @default(5)
   goal             Goal       @default(TRACK)
@@ -41,6 +42,20 @@ model User {
 
   cycles           Cycle[]
   dailyLogs        DailyLog[]
+  sessions         Session[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Cycle {
@@ -59,7 +74,7 @@ model Cycle {
 model DailyLog {
   id         String   @id @default(uuid())
   userId     String
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   logDate    DateTime
   flow       Flow?
   symptoms   String[]
