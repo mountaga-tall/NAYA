@@ -1,9 +1,22 @@
 import { cookies } from "next/headers";
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
 import prisma from "@/lib/prisma";
 
-const scryptAsync = promisify(scrypt);
+const scryptAsync = (
+  password: string,
+  salt: string,
+  keyLength: number,
+  options: { N?: number; r?: number; p?: number; maxmem?: number }
+) =>
+  new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, keyLength, options, (error, derivedKey) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(derivedKey);
+    });
+  });
 
 export const SESSION_COOKIE = "naya_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
