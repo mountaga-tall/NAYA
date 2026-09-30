@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { Goal } from "@/lib/storage";
+type Goal = "TRACK" | "PREVENT" | "CONCEIVE";
 
 export default function OnboardingPage() {
   const router = useRouter();
