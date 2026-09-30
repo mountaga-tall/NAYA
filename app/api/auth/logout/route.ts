@@ -1,6 +1,13 @@
-import { clearCurrentSession } from "@/lib/auth";
+import { clearCurrentSession, isSameOrigin } from "@/lib/auth";
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return Response.json(
+      { error: "Origine de requête invalide." },
+      { status: 403, headers: { "Cache-Control": "private, no-store" } }
+    );
+  }
+
   try {
     await clearCurrentSession();
     return Response.json(
@@ -9,6 +16,9 @@ export async function POST() {
     );
   } catch (error) {
     console.error("Logout error", error);
-    return Response.json({ error: "Impossible de se déconnecter." }, { status: 500 });
+    return Response.json(
+      { error: "Impossible de se déconnecter." },
+      { status: 500, headers: { "Cache-Control": "private, no-store" } }
+    );
   }
 }
