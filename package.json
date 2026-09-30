@@ -23,7 +23,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "@latest",
+    "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
     "@types/pg": "latest",
     "@types/react": "latest",
