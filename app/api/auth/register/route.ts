@@ -3,6 +3,7 @@ import {
   createSession,
   hashPassword,
   isValidEmail,
+  isSameOrigin,
   normalizeEmail,
   validatePassword,
 } from "@/lib/auth";
@@ -11,6 +12,13 @@ const goals = ["TRACK", "PREVENT", "CONCEIVE"] as const;
 
 export async function POST(request: Request) {
   try {
+    if (!isSameOrigin(request)) {
+      return Response.json(
+        { error: "Origine de requête invalide." },
+        { status: 403, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
     const body = await request.json();
     const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
     const email = normalizeEmail(body.email);
@@ -20,7 +28,7 @@ export async function POST(request: Request) {
     const goal = body.goal;
 
     if (!firstName || firstName.length > 80) {
-      return Response.json({ error: "Prénom invalide." }, { status: 400 });
+      return Response.json({ error: "Prénom invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
     if (!isValidEmail(email)) {
       return Response.json({ error: "Adresse email invalide." }, { status: 400 });
