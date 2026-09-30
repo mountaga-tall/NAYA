@@ -6,7 +6,6 @@ import {
   hashPassword,
   isValidEmail,
   isSameOrigin,
-  isSameOrigin,
   normalizeEmail,
   validatePassword,
 } from "@/lib/auth";
