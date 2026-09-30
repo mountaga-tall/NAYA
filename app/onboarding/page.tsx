@@ -1,40 +1,58 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { readProfile, saveProfile, type Goal } from "@/lib/storage";
+import { useState } from "react";
+type Goal = "TRACK" | "PREVENT" | "CONCEIVE";
 
 export default function OnboardingPage() {
   const router = useRouter();
-
   const [step, setStep] = useState(1);
-  const [firstName, setFirstName] = useState("Amina");
+  const [firstName, setFirstName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState(28);
   const [goal, setGoal] = useState<Goal>("TRACK");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const profile = readProfile();
-    if (!profile) return;
+  async function finishOnboarding() {
+    if (!lastPeriodDate || !firstName || !email || !password) {
+      setError("Remplis tous les champs obligatoires.");
+      return;
+    }
 
-    setFirstName(profile.firstName || "Amina");
-    setLastPeriodDate(profile.lastPeriodDate || "");
-    setCycleLength(profile.cycleLength || 28);
-    setGoal(profile.goal || "TRACK");
-  }, []);
+    setSaving(true);
+    setError("");
 
-  function finishOnboarding() {
-    if (!lastPeriodDate) return;
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          email,
+          password,
+          lastPeriodDate,
+          cycleLength,
+          goal,
+        }),
+      });
 
-    saveProfile({
-      firstName,
-      lastPeriodDate,
-      cycleLength,
-      goal,
-      discreetMode: false,
-    });
+      const data = await response.json();
 
-    router.push("/accueil");
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de créer ton espace.");
+      }
+
+      router.replace("/accueil");
+      router.refresh();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Impossible de créer ton espace.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -45,7 +63,6 @@ export default function OnboardingPage() {
             <span className="font-semibold text-[#6B2D5C]">Naya</span>
             <span className="text-[#2C1A16]/50">Étape {step} / 3</span>
           </div>
-
           <div className="h-2 overflow-hidden rounded-full bg-[#F4D8D8]">
             <div
               className="h-full rounded-full bg-[#D96C5B] transition-all"
@@ -58,42 +75,78 @@ export default function OnboardingPage() {
           <section>
             <div className="mb-8 text-center">
               <div className="mb-4 text-5xl">🌸</div>
-              <h1 className="text-3xl font-bold">Commençons doucement</h1>
+              <h1 className="text-3xl font-bold">Créer ton espace</h1>
               <p className="mt-3 text-sm leading-6 text-[#2C1A16]/65">
-                Comment veux-tu que Naya t’appelle ?
+                Ton mot de passe est stocké uniquement sous forme de hash sécurisé côté serveur.
               </p>
             </div>
 
-            <label className="mb-3 block text-sm font-semibold">Prénom</label>
+            <label className="mb-2 block text-sm font-semibold">Prénom</label>
             <input
               type="text"
               value={firstName}
-              onChange={(event) => setFirstName(event.target.value || "Amina")}
-              className="mb-6 w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
-              placeholder="Amina"
+              onChange={(event) => setFirstName(event.target.value)}
+              autoComplete="given-name"
+              required
+              className="mb-4 w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
+              placeholder="Ton prénom"
             />
 
-            <label className="mb-3 block text-sm font-semibold">
+            <label className="mb-2 block text-sm font-semibold">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              required
+              className="mb-4 w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
+              placeholder="toi@exemple.com"
+            />
+
+            <label className="mb-2 block text-sm font-semibold">Mot de passe</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              required
+              className="mb-6 w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
+              placeholder="8 caractères minimum"
+            />
+
+            <label className="mb-2 block text-sm font-semibold">
               Date de début des dernières règles
             </label>
             <input
               type="date"
               value={lastPeriodDate}
               onChange={(event) => setLastPeriodDate(event.target.value)}
+              required
               className="w-full rounded-2xl border border-[#E7DDD8] bg-white px-4 py-4 outline-none focus:border-[#D96C5B]"
             />
 
             <button
               type="button"
               onClick={() => {
-                if (!lastPeriodDate) return;
+                setError("");
+                if (!lastPeriodDate || !firstName || !email || !password) {
+                  setError("Remplis tous les champs obligatoires.");
+                  return;
+                }
                 setStep(2);
               }}
-              disabled={!lastPeriodDate}
-              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
             >
               Suivant
             </button>
+
+            <p className="mt-5 text-center text-sm text-[#2C1A16]/60">
+              Tu as déjà un compte ?{" "}
+              <Link href="/connexion" className="font-bold text-[#6B2D5C]">
+                Se connecter
+              </Link>
+            </p>
           </section>
         )}
 
@@ -130,7 +183,10 @@ export default function OnboardingPage() {
 
             <button
               type="button"
-              onClick={() => setStep(3)}
+              onClick={() => {
+                setError("");
+                setStep(3);
+              }}
               className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
             >
               Suivant
@@ -157,58 +213,40 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setGoal("TRACK")}
-                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
-                  goal === "TRACK"
-                    ? "border-[#D96C5B] bg-[#F4D8D8]"
-                    : "border-[#E7DDD8] bg-white"
-                }`}
-              >
-                <div className="font-bold">🌸 Suivre mon cycle</div>
-                <div className="mt-1 text-sm text-[#2C1A16]/60">
-                  Comprendre mon rythme et mes symptômes.
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setGoal("PREVENT")}
-                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
-                  goal === "PREVENT"
-                    ? "border-[#D96C5B] bg-[#F4D8D8]"
-                    : "border-[#E7DDD8] bg-white"
-                }`}
-              >
-                <div className="font-bold">🛡️ Éviter une grossesse</div>
-                <div className="mt-1 text-sm text-[#2C1A16]/60">
-                  Les estimations de Naya ne remplacent pas une contraception.
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setGoal("CONCEIVE")}
-                className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
-                  goal === "CONCEIVE"
-                    ? "border-[#D96C5B] bg-[#F4D8D8]"
-                    : "border-[#E7DDD8] bg-white"
-                }`}
-              >
-                <div className="font-bold">👶 Essayer de concevoir</div>
-                <div className="mt-1 text-sm text-[#2C1A16]/60">
-                  Suivre mon cycle dans un projet de conception.
-                </div>
-              </button>
+              {([
+                ["TRACK", "🌸 Suivre mon cycle", "Comprendre mon rythme et mes symptômes."],
+                ["PREVENT", "🛡️ Éviter une grossesse", "Les estimations de Naya ne remplacent pas une contraception."],
+                ["CONCEIVE", "👶 Essayer de concevoir", "Suivre mon cycle dans un projet de conception."],
+              ] as const).map(([value, title, description]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setGoal(value)}
+                  className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
+                    goal === value
+                      ? "border-[#D96C5B] bg-[#F4D8D8]"
+                      : "border-[#E7DDD8] bg-white"
+                  }`}
+                >
+                  <div className="font-bold">{title}</div>
+                  <div className="mt-1 text-sm text-[#2C1A16]/60">{description}</div>
+                </button>
+              ))}
             </div>
+
+            {error && (
+              <div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-600">
+                {error}
+              </div>
+            )}
 
             <button
               type="button"
               onClick={finishOnboarding}
-              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg"
+              disabled={saving}
+              className="mt-8 w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:opacity-60"
             >
-              Créer mon espace
+              {saving ? "Création..." : "Créer mon espace"}
             </button>
 
             <p className="mt-5 text-center text-xs leading-5 text-[#2C1A16]/50">

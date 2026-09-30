@@ -1,3 +1,6 @@
+export const runtime = "nodejs";
+
+import { getCurrentUser, unauthorized } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
   getCurrentCycleDay,
@@ -6,92 +9,52 @@ import {
   getNextPeriodDate,
 } from "@/lib/cycleMath";
 
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
-
 export async function GET() {
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: DEMO_USER_ID,
-      },
-    });
+    const user = await getCurrentUser();
+    if (!user) return unauthorized();
 
     const cycle = await prisma.cycle.findFirst({
-      where: {
-        userId: DEMO_USER_ID,
-        isActive: true,
-      },
-      orderBy: {
-        startDate: "desc",
-      },
+      where: { userId: user.id, isActive: true },
+      orderBy: { startDate: "desc" },
     });
 
-    if (!user || !cycle) {
+    if (!cycle) {
       return Response.json(
-        {
-          configured: false,
-          message: "Aucun cycle actif n'est configuré.",
-        },
-        {
-          status: 200,
-        }
+        { configured: false, message: "Aucun cycle actif n'est configuré." },
+        { headers: { "Cache-Control": "private, no-store" } }
       );
     }
 
-    const cycleStartDate = cycle.startDate;
-    const cycleLength = user.avgCycleLength;
-
-    const nextPeriodDate = getNextPeriodDate(
-      cycleStartDate,
-      cycleLength
-    );
-
-    const ovulationDate =
-      getEstimatedOvulationDate(nextPeriodDate);
-
-    const fertileWindow =
-      getEstimatedFertileWindow(ovulationDate);
-
-    const currentCycleDay =
-      getCurrentCycleDay(cycleStartDate);
-
+    const nextPeriodDate = getNextPeriodDate(cycle.startDate, user.avgCycleLength);
+    const ovulationDate = getEstimatedOvulationDate(nextPeriodDate);
+    const fertileWindow = getEstimatedFertileWindow(ovulationDate);
+    const currentCycleDay = getCurrentCycleDay(cycle.startDate);
     const today = new Date();
 
-    const isFertile =
-      today >= fertileWindow.start &&
-      today <= fertileWindow.end;
-
+    const isFertile = today >= fertileWindow.start && today <= fertileWindow.end;
     let status = "Cycle en cours";
-
-    if (isFertile) {
-      status = "Période fertile estimée";
-    } else if (today >= nextPeriodDate) {
-      status = "Prochaine période estimée";
-    }
-
-    return Response.json({
-      configured: true,
-      firstName: user.firstName,
-      cycleLength,
-      currentCycleDay,
-      cycleStartDate,
-      nextPeriodDate,
-      ovulationDate,
-      fertileWindow,
-      status,
-      disclaimer:
-        "Les dates affichées sont des estimations et ne constituent pas une méthode contraceptive ni un diagnostic médical.",
-    });
-  } catch (error) {
-    console.error(error);
+    if (isFertile) status = "Période fertile estimée";
+    else if (today >= nextPeriodDate) status = "Prochaine période estimée";
 
     return Response.json(
       {
-        error: "Impossible de récupérer les données du cycle.",
+        configured: true,
+        firstName: user.firstName,
+        cycleLength: user.avgCycleLength,
+        currentCycleDay,
+        cycleStartDate: cycle.startDate,
+        nextPeriodDate,
+        ovulationDate,
+        fertileWindow,
+        status,
+        disclaimer:
+          "Les dates affichées sont des estimations et ne constituent pas une méthode contraceptive ni un diagnostic médical.",
       },
-      {
-        status: 500,
-      }
+      { headers: { "Cache-Control": "private, no-store" } }
     );
+  } catch (error) {
+    console.error("GET /api/cycle", error);
+    return Response.json({ error: "Impossible de récupérer les données du cycle." }, { status: 500 });
   }
 }

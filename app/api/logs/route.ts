@@ -1,159 +1,117 @@
-import prisma from "@/lib/prisma";
+export const runtime = "nodejs";
 
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+import { getCurrentUser, isSameOrigin, unauthorized } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 function getTodayRange() {
   const now = new Date();
-
-  const start = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    0,
-    0,
-    0,
-    0
-  );
-
-  const end = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + 1,
-    0,
-    0,
-    0,
-    0
-  );
-
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
   return { start, end };
 }
 
 export async function GET() {
   try {
+    const user = await getCurrentUser();
+    if (!user) return unauthorized();
+
     const { start, end } = getTodayRange();
-
     const log = await prisma.dailyLog.findFirst({
-      where: {
-        userId: DEMO_USER_ID,
-        logDate: {
-          gte: start,
-          lt: end,
-        },
-      },
-      orderBy: {
-        logDate: "desc",
-      },
+      where: { userId: user.id, logDate: { gte: start, lt: end } },
+      orderBy: { logDate: "desc" },
     });
-
-    return Response.json({
-      success: true,
-      log,
-    });
-  } catch (error) {
-    console.error(error);
 
     return Response.json(
-      {
-        error: "Impossible de récupérer le suivi du jour.",
-      },
-      {
-        status: 500,
-      }
+      { success: true, log },
+      { headers: { "Cache-Control": "private, no-store" } }
     );
+  } catch (error) {
+    console.error("GET /api/logs", error);
+    return Response.json({ error: "Impossible de récupérer le suivi du jour." }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-
-    const {
-      logDate,
-      flow,
-      symptoms,
-      mood,
-      energy,
-      sleep,
-      discharge,
-      notes,
-    } = body;
-
-    if (!logDate) {
+    if (!isSameOrigin(request)) {
       return Response.json(
-        {
-          error: "La date est obligatoire.",
-        },
-        {
-          status: 400,
-        }
+        { error: "Origine de requête invalide." },
+        { status: 403, headers: { "Cache-Control": "private, no-store" } }
       );
     }
 
-    await prisma.user.upsert({
-      where: {
-        id: DEMO_USER_ID,
-      },
-      update: {},
-      create: {
-        id: DEMO_USER_ID,
-        firstName: "Amina",
-        avgCycleLength: 28,
-        avgPeriodLength: 5,
-        goal: "TRACK",
-      },
-    });
+    const user = await getCurrentUser();
+    if (!user) return unauthorized();
 
-    const normalizedDate = new Date(`${logDate}T00:00:00`);
+    const body = await request.json();
+    const {
+      logDate, flow, symptoms, mood, energy, sleep, discharge, notes,
+    } = body;
+
+    if (typeof logDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(logDate)) {
+      return Response.json(
+        { error: "La date est invalide." },
+        { status: 400, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
+    const normalizedDate = new Date(`${logDate}T00:00:00.000Z`);
+    const allowedFlows = new Set(["LIGHT", "MEDIUM", "HEAVY", "SPOTTING"]);
+    const allowedMoods = new Set(["CALM", "HAPPY", "SAD", "IRRITABLE", "ANXIOUS"]);
+    const allowedSymptoms = new Set(["HEADACHE", "CRAMPS", "LOW_BACK_PAIN", "TENDER_BREASTS"]);
+
+    if (flow !== null && flow !== undefined && !allowedFlows.has(flow)) {
+      return Response.json({ error: "Flux invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    }
+    if (mood !== null && mood !== undefined && !allowedMoods.has(mood)) {
+      return Response.json({ error: "Humeur invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    }
+    if (
+      !Array.isArray(symptoms) ||
+      symptoms.length > 20 ||
+      symptoms.some((item) => typeof item !== "string" || !allowedSymptoms.has(item))
+    ) {
+      return Response.json({ error: "Symptômes invalides." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    }
 
     const log = await prisma.dailyLog.upsert({
       where: {
         userId_logDate: {
-          userId: DEMO_USER_ID,
+          userId: user.id,
           logDate: normalizedDate,
         },
       },
       update: {
         flow: flow ?? null,
-        symptoms: symptoms ?? [],
+        symptoms,
         mood: mood ?? null,
-        energy: energy ?? null,
-        sleep: sleep ?? null,
-        discharge: discharge ?? null,
-        notes: notes ?? null,
+        energy: Number.isInteger(energy) && energy >= 0 && energy <= 10 ? energy : null,
+        sleep: Number.isInteger(sleep) && sleep >= 0 && sleep <= 24 ? sleep : null,
+        discharge: typeof discharge === "string" ? discharge.slice(0, 500) : null,
+        notes: typeof notes === "string" ? notes.slice(0, 2000) : null,
       },
       create: {
-        userId: DEMO_USER_ID,
+        userId: user.id,
         logDate: normalizedDate,
         flow: flow ?? null,
-        symptoms: symptoms ?? [],
+        symptoms,
         mood: mood ?? null,
-        energy: energy ?? null,
-        sleep: sleep ?? null,
-        discharge: discharge ?? null,
-        notes: notes ?? null,
+        energy: Number.isInteger(energy) && energy >= 0 && energy <= 10 ? energy : null,
+        sleep: Number.isInteger(sleep) && sleep >= 0 && sleep <= 24 ? sleep : null,
+        discharge: typeof discharge === "string" ? discharge.slice(0, 500) : null,
+        notes: typeof notes === "string" ? notes.slice(0, 2000) : null,
       },
     });
 
     return Response.json(
-      {
-        success: true,
-        message: "Suivi enregistré.",
-        log,
-      },
-      {
-        status: 200,
-      }
+      { success: true, message: "Suivi enregistré.", log },
+      { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error) {
-    console.error(error);
-
+    console.error("POST /api/logs", error);
     return Response.json(
-      {
-        error: "Impossible d'enregistrer le suivi.",
-      },
-      {
-        status: 500,
-      }
+      { error: "Impossible d'enregistrer le suivi." },
+      { status: 500, headers: { "Cache-Control": "private, no-store" } }
     );
   }
 }
