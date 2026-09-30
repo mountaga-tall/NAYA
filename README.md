@@ -62,3 +62,8 @@ La migration `20260930000000_add_auth` ajoute `User.passwordHash` et la table `S
 Les écritures sensibles vérifient aussi l'origine de la requête. Les échecs de connexion sont ralentis par une limitation de tentatives en mémoire, utile comme protection de premier niveau mais non distribuée entre plusieurs instances Vercel.
 
 Avant un déploiement à grande échelle, il reste à prévoir une vérification d'email, une récupération de mot de passe et une limitation distribuée via un stockage partagé.
+
+
+## Déploiement Vercel
+
+Le projet Vercel de production est `naya-2fve`. Les modifications validées sont fusionnées dans `main` et doivent être déployées sur cet environnement. La migration Prisma `20260930000000_add_auth` doit être appliquée à la base de données de production avant l'utilisation des nouveaux endpoints d'authentification.
