@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { clearCurrentSession, isSameOrigin } from "@/lib/auth";
 
 export async function POST(request: Request) {
