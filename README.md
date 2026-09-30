@@ -57,6 +57,8 @@ npm run build
 
 La migration `20260930000000_add_auth` ajoute `User.passwordHash` et la table `Session`.
 
-### Limites à compléter avant un déploiement à grande échelle
+### Durcissement actuel
 
-Cette version ne fournit pas encore de vérification d'email, de récupération de mot de passe ou de limitation de tentatives de connexion distribuée. Ces mécanismes peuvent être ajoutés ensuite sans exposer les tokens au client.
+Les écritures sensibles vérifient aussi l'origine de la requête. Les échecs de connexion sont ralentis par une limitation de tentatives en mémoire, utile comme protection de premier niveau mais non distribuée entre plusieurs instances Vercel.
+
+Avant un déploiement à grande échelle, il reste à prévoir une vérification d'email, une récupération de mot de passe et une limitation distribuée via un stockage partagé.
