@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { getCurrentUser, unauthorized } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
