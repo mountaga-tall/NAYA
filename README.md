@@ -13,3 +13,50 @@ Un outil simple, discret et respectueux de la vie privée.
 - Journal
 - Insights
 - Profil et confidentialité
+
+## Authentification
+
+Naya utilise désormais une authentification par email + mot de passe avec une session serveur.
+
+### Flux de connexion
+
+```text
+Inscription / connexion
+        ↓
+POST /api/auth/register ou /api/auth/login
+        ↓
+mot de passe vérifié / hashé avec scrypt
+        ↓
+création d'un token de session aléatoire
+        ↓
+seul le hash SHA-256 du token est stocké en base
+        ↓
+cookie HttpOnly + Secure (production) + SameSite=Lax
+        ↓
+GET /api/auth/me et routes protégées
+        ↓
+session → user.id → données utilisateur
+```
+
+Le token brut de session n'est jamais renvoyé au JavaScript de la page et n'est jamais stocké dans `localStorage`.
+
+### Séparation des données
+
+Les routes `/api/cycle`, `/api/logs`, `/api/insights` et `/api/profile` récupèrent l'utilisateur depuis la session avant toute lecture ou écriture Prisma. Il n'y a plus de `DEMO_USER_ID` partagé entre les utilisateurs.
+
+Les suppressions utilisent la relation `User → Session/Cycle/DailyLog` avec suppression en cascade côté base de données.
+
+### Migration
+
+Après récupération de la branche :
+
+```bash
+npx prisma migrate deploy
+npm run build
+```
+
+La migration `20260930000000_add_auth` ajoute `User.passwordHash` et la table `Session`.
+
+### Limites à compléter avant un déploiement à grande échelle
+
+Cette version ne fournit pas encore de vérification d'email, de récupération de mot de passe ou de limitation de tentatives de connexion distribuée. Ces mécanismes peuvent être ajoutés ensuite sans exposer les tokens au client.
