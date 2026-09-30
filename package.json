@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build",
+    "build": "prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then node scripts/migrate-production.mjs && prisma migrate deploy; fi && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
@@ -23,7 +23,7 @@
     "react-dom": "latest"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "latest",
+    "@tailwindcss/postcss": "@latest",
     "@types/node": "latest",
     "@types/pg": "latest",
     "@types/react": "latest",
