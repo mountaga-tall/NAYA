@@ -4,6 +4,7 @@ import {
   hashPassword,
   isValidEmail,
   isSameOrigin,
+  isSameOrigin,
   normalizeEmail,
   validatePassword,
 } from "@/lib/auth";
@@ -36,20 +37,20 @@ export async function POST(request: Request) {
     if (!validatePassword(password)) {
       return Response.json(
         { error: "Le mot de passe doit contenir entre 8 et 128 caractères." },
-        { status: 400 }
+        { status: 400, headers: { "Cache-Control": "private, no-store" } }
       );
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(lastPeriodDate)) {
-      return Response.json({ error: "Date de cycle invalide." }, { status: 400 });
+      return Response.json({ error: "Date de cycle invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
     if (!Number.isInteger(cycleLength) || cycleLength < 21 || cycleLength > 35) {
       return Response.json(
         { error: "La durée du cycle doit être comprise entre 21 et 35 jours." },
-        { status: 400 }
+        { status: 400, headers: { "Cache-Control": "private, no-store" } }
       );
     }
     if (!goals.includes(goal)) {
-      return Response.json({ error: "Objectif invalide." }, { status: 400 });
+      return Response.json({ error: "Objectif invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
 
     const startDate = new Date(`${lastPeriodDate}T00:00:00.000Z`);
@@ -87,11 +88,14 @@ export async function POST(request: Request) {
     if (code === "P2002") {
       return Response.json(
         { error: "Un compte existe déjà avec cette adresse email." },
-        { status: 409 }
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
       );
     }
 
     console.error("Registration error", error);
-    return Response.json({ error: "Impossible de créer le compte." }, { status: 500 });
+    return Response.json(
+      { error: "Impossible de créer le compte." },
+      { status: 500, headers: { "Cache-Control": "private, no-store" } }
+    );
   }
 }
