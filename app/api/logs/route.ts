@@ -94,8 +94,8 @@ export async function POST(request: Request) {
         flow: flow ?? null,
         symptoms,
         mood: mood ?? null,
-        energy: typeof energy === "number" ? energy : null,
-        sleep: typeof sleep === "number" ? sleep : null,
+        energy: Number.isInteger(energy) && energy >= 0 && energy <= 10 ? energy : null,
+        sleep: Number.isInteger(sleep) && sleep >= 0 && sleep <= 24 ? sleep : null,
         discharge: typeof discharge === "string" ? discharge.slice(0, 500) : null,
         notes: typeof notes === "string" ? notes.slice(0, 2000) : null,
       },
@@ -107,6 +107,9 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("POST /api/logs", error);
-    return Response.json({ error: "Impossible d'enregistrer le suivi." }, { status: 500 });
+    return Response.json(
+      { error: "Impossible d'enregistrer le suivi." },
+      { status: 500, headers: { "Cache-Control": "private, no-store" } }
+    );
   }
 }
