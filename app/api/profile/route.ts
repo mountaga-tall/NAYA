@@ -1,4 +1,4 @@
-import { clearCurrentSession, getCurrentUser, unauthorized } from "@/lib/auth";
+import { clearCurrentSession, getCurrentUser, isSameOrigin, unauthorized } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 const validGoals = ["TRACK", "PREVENT", "CONCEIVE"] as const;
@@ -40,6 +40,13 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+    if (!isSameOrigin(request)) {
+      return Response.json(
+        { error: "Origine de requête invalide." },
+        { status: 403, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
     const user = await getCurrentUser();
     if (!user) return unauthorized();
 
@@ -97,8 +104,15 @@ export async function PATCH(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   try {
+    if (!isSameOrigin(request)) {
+      return Response.json(
+        { error: "Origine de requête invalide." },
+        { status: 403, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
     const user = await getCurrentUser();
     if (!user) return unauthorized();
 
