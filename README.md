@@ -67,3 +67,10 @@ Avant un déploiement à grande échelle, il reste à prévoir une vérification
 ## Déploiement Vercel
 
 Le projet Vercel de production est `naya-2fve`. Les modifications validées sont fusionnées dans `main` et doivent être déployées sur cet environnement. La migration Prisma `20260930000000_add_auth` doit être appliquée à la base de données de production avant l'utilisation des nouveaux endpoints d'authentification.
+
+
+## Langues / Languages
+
+L'interface dispose d'une pastille de langue **FR / EN** disponible sur toutes les pages de l'application. Le choix est conservé dans le navigateur, tandis que les données, l'authentification par session serveur et les API restent communes aux deux langues.
+
+The interface includes an **FR / EN** language pill on all application pages. The choice is kept in the browser, while user data, server-side session authentication and APIs are shared across both languages.
