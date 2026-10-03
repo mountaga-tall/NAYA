@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 type Locale = "fr" | "en";
 
@@ -138,13 +138,11 @@ function localeFromStorage(): Locale {
 }
 
 export default function LanguageRuntime() {
-  const [locale, setLocale] = useState<Locale>("fr");
   const originals = useRef(new WeakMap<Text, string>());
   const translating = useRef(false);
 
   useEffect(() => {
     const initial = localeFromStorage();
-    setLocale(initial);
     document.documentElement.lang = initial;
 
     const translateTree = (root: Node = document.body) => {
@@ -196,7 +194,6 @@ export default function LanguageRuntime() {
     const applyLocale = (next: Locale) => {
       localeRef.current = next;
       window.localStorage.setItem("naya-locale", next);
-      setLocale(next);
       translateTree();
     };
 
