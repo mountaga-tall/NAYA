@@ -187,7 +187,7 @@ export default function LanguageRuntime() {
       }
 
       document.documentElement.lang = localeRef.current;
-      document.title = translations[document.title] ?? document.title;
+      document.title = localeRef.current === "en" ? (translations[document.title] ?? document.title) : (reverse.get(document.title) ?? document.title);
       translating.current = false;
     };
 
