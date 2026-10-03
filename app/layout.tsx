@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import LanguageRuntime from "@/components/LanguageRuntime";
 
 export const metadata: Metadata = {
   title: "Naya — Ton cycle, ton rythme",
@@ -14,7 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>{children}<LanguageRuntime /></body>
     </html>
   );
 }
