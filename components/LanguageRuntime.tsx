@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 type Locale = "fr" | "en";
 
 const translations: Record<string, string> = {
+  "Naya — Ton cycle, ton rythme": "Naya — Your cycle, your rhythm",
   "Ton cycle, ton rythme.": "Your cycle, your rhythm.",
   "Une application simple pour suivre ton cycle, comprendre ton rythme et garder tes données privées.": "A simple app to track your cycle, understand your rhythm, and keep your data private.",
   "Commencer gratuitement": "Start for free",
@@ -186,6 +187,7 @@ export default function LanguageRuntime() {
       }
 
       document.documentElement.lang = localeRef.current;
+      document.title = translations[document.title] ?? document.title;
       translating.current = false;
     };
 
