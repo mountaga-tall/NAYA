@@ -50,16 +50,21 @@ export async function POST(request: Request) {
         { status: 400, headers: { "Cache-Control": "private, no-store" } }
       );
     }
+    const validSelectedGoals = Array.isArray(requestedGoals)
+      ? requestedGoals.filter((value): value is (typeof goals)[number] =>
+          typeof value === "string" && goals.includes(value as (typeof goals)[number])
+        )
+      : [];
+
     if (
       !Array.isArray(requestedGoals) ||
       requestedGoals.length === 0 ||
-      !requestedGoals.every((value): value is (typeof goals)[number] =>
-        typeof value === "string" && goals.includes(value as (typeof goals)[number])
-      )
+      validSelectedGoals.length !== requestedGoals.length
     ) {
       return Response.json({ error: "Choisis au moins un objectif valide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
-    const selectedGoals = [...new Set(requestedGoals)];
+
+    const selectedGoals = [...new Set(validSelectedGoals)];
     const primaryGoal = selectedGoals[0];
 
     const startDate = new Date(`${lastPeriodDate}T00:00:00.000Z`);
