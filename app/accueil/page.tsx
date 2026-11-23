@@ -243,6 +243,20 @@ export default function AccueilPage() {
           </p>
         </section>
 
+        <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm">
+          <p className="text-2xl">📰</p>
+          <h2 className="mt-2 font-bold text-[#6B2D5C]">Conseils & actualités</h2>
+          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/65">
+            Des informations fiables et des conseils adaptés à ton objectif.
+          </p>
+          <Link
+            href="/conseils"
+            className="mt-4 inline-flex rounded-xl bg-[#F4D8D8] px-4 py-3 text-sm font-bold text-[#6B2D5C]"
+          >
+            Découvrir mes conseils →
+          </Link>
+        </section>
+
         <BottomNav />
       </div>
     </main>
