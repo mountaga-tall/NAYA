@@ -21,6 +21,7 @@ export async function GET() {
           avgCycleLength: user.avgCycleLength,
           avgPeriodLength: user.avgPeriodLength,
           goal: user.goal,
+          goals: user.goals,
           discreetMode: user.discreetMode,
         },
         cycles: await prisma.cycle.findMany({
@@ -53,16 +54,18 @@ export async function PATCH(request: Request) {
     if (!user) return unauthorized();
 
     const body = await request.json();
-    const { discreetMode, firstName, goal } = body as {
+    const { discreetMode, firstName, goal, goals } = body as {
       discreetMode?: boolean;
       firstName?: string;
       goal?: GoalValue;
+      goals?: unknown;
     };
 
     const data: {
       discreetMode?: boolean;
       firstName?: string;
       goal?: GoalValue;
+      goals?: GoalValue[];
     } = {};
 
     if (typeof discreetMode === "boolean") data.discreetMode = discreetMode;
@@ -75,11 +78,29 @@ export async function PATCH(request: Request) {
       data.firstName = normalizedName;
     }
 
-    if (goal !== undefined) {
+    if (goals !== undefined) {
+      if (!Array.isArray(goals) || goals.length === 0) {
+        return Response.json({ error: "Choisis au moins un objectif." }, { status: 400 });
+      }
+
+      const selectedGoals = [...new Set(
+        goals.filter((value): value is GoalValue =>
+          typeof value === "string" && validGoals.includes(value as GoalValue)
+        )
+      )];
+
+      if (selectedGoals.length !== goals.length) {
+        return Response.json({ error: "Un ou plusieurs objectifs sont invalides." }, { status: 400 });
+      }
+
+      data.goals = selectedGoals;
+      data.goal = selectedGoals[0];
+    } else if (goal !== undefined) {
       if (!validGoals.includes(goal)) {
         return Response.json({ error: "Objectif invalide." }, { status: 400 });
       }
       data.goal = goal;
+      data.goals = [goal];
     }
 
     const updated = await prisma.user.update({
@@ -92,6 +113,7 @@ export async function PATCH(request: Request) {
         avgCycleLength: true,
         avgPeriodLength: true,
         goal: true,
+        goals: true,
         discreetMode: true,
       },
     });
