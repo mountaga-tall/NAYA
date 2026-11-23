@@ -9,7 +9,12 @@ export async function GET() {
   return Response.json(
     {
       authenticated: true,
-      user: { id: user.id, firstName: user.firstName, email: user.email },
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        email: user.email,
+        goal: user.goal,
+      },
     },
     { headers: { "Cache-Control": "private, no-store" } }
   );
