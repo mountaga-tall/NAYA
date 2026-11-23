@@ -77,7 +77,7 @@ export default function JournalPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           logDate: getTodayDate(),
-          flow,
+          flow: flux,
           symptoms,
           mood,
           energy,

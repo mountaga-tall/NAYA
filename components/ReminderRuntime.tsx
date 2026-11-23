@@ -52,7 +52,6 @@ export default function ReminderRuntime() {
                 body: "Tu peux noter ton flux, ton humeur ou tes symptômes dans ton journal Naya.",
                 icon: "/icon.svg",
                 tag: reminderKey,
-                renotify: false,
               };
 
               const registration = "serviceWorker" in navigator

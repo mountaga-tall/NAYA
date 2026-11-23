@@ -17,6 +17,8 @@ type InsightData = {
   moods?: { value: string; label: string; count: number }[];
   averageEnergy?: number | null;
   averageSleep?: number | null;
+  energyLogCount?: number;
+  sleepLogCount?: number;
   logsByMonth?: { month: string; count: number }[];
   totalLogs?: number;
   message?: string;
