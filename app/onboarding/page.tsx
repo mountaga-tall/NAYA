@@ -13,7 +13,7 @@ export default function OnboardingPage() {
   const [password, setPassword] = useState("");
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState(28);
-  const [goal, setGoal] = useState<Goal>("TRACK");
+  const [goals, setGoals] = useState<Goal[]>(["TRACK"]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -36,7 +36,8 @@ export default function OnboardingPage() {
           password,
           lastPeriodDate,
           cycleLength,
-          goal,
+          goals,
+          goal: goals[0],
         }),
       });
 
@@ -208,7 +209,7 @@ export default function OnboardingPage() {
               <div className="mb-4 text-5xl">💛</div>
               <h1 className="text-3xl font-bold">Que souhaites-tu faire ?</h1>
               <p className="mt-3 text-sm leading-6 text-[#2C1A16]/65">
-                Tu pourras modifier ton choix plus tard.
+                Tu peux choisir un ou plusieurs objectifs, et les modifier plus tard dans ton profil.
               </p>
             </div>
 
@@ -221,18 +222,39 @@ export default function OnboardingPage() {
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setGoal(value)}
+                  onClick={() => {
+                    setError("");
+                    setGoals((current) => {
+                      if (current.includes(value)) {
+                        return current.length > 1
+                          ? current.filter((item) => item !== value)
+                          : current;
+                      }
+                      return [...current, value];
+                    });
+                  }}
+                  aria-pressed={goals.includes(value)}
                   className={`w-full rounded-2xl border p-5 text-left shadow-sm ${
-                    goal === value
+                    goals.includes(value)
                       ? "border-[#D96C5B] bg-[#F4D8D8]"
                       : "border-[#E7DDD8] bg-white"
                   }`}
                 >
-                  <div className="font-bold">{title}</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-bold">{title}</span>
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                      goals.includes(value)
+                        ? "border-[#D96C5B] bg-[#D96C5B] text-white"
+                        : "border-[#E7DDD8] text-transparent"
+                    }`}>✓</span>
+                  </div>
                   <div className="mt-1 text-sm text-[#2C1A16]/60">{description}</div>
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-center text-xs text-[#2C1A16]/50">
+              {goals.length} objectif{goals.length > 1 ? "s" : ""} sélectionné{goals.length > 1 ? "s" : ""} · Au moins un objectif doit rester actif.
+            </p>
 
             {error && (
               <div className="mt-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-600">
