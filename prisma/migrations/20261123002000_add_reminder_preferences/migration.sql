@@ -1,0 +1,3 @@
+ALTER TABLE "User"
+ADD COLUMN "remindersEnabled" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "reminderTime" TEXT NOT NULL DEFAULT '20:00';

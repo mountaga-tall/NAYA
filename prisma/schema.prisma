@@ -38,6 +38,8 @@ model User {
   goal             Goal       @default(TRACK)
   goals            Goal[]     @default([TRACK])
   discreetMode     Boolean    @default(false)
+  remindersEnabled Boolean    @default(false)
+  reminderTime     String     @default("20:00")
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
