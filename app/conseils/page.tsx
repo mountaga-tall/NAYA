@@ -265,7 +265,7 @@ export default function ConseilsPage() {
               typeof value === "string" && validGoals.includes(value as Goal)
             )
           : validGoals.includes(savedGoal) ? [savedGoal] : ["TRACK"];
-        const activeGoals = profileGoals.length > 0 ? profileGoals : ["TRACK"];
+        const activeGoals: Goal[] = profileGoals.length > 0 ? profileGoals : ["TRACK"];
 
         if (active) {
           setSavedGoals(activeGoals);
