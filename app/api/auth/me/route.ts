@@ -14,6 +14,7 @@ export async function GET() {
         firstName: user.firstName,
         email: user.email,
         goal: user.goal,
+        goals: user.goals,
       },
     },
     { headers: { "Cache-Control": "private, no-store" } }
