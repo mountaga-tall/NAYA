@@ -176,12 +176,12 @@ const guides: Record<Goal, GoalGuide> = {
       "Prépare ton projet à ton rythme : comprends les signes du cycle, prends soin de ta santé et garde des repères réalistes. La conception peut prendre du temps.",
     news: [
       {
-        date: "18 septembre 2026",
+        date: "15 juillet 2026",
         source: "Centers for Disease Control and Prevention (CDC)",
         title: "Acide folique : un geste à anticiper avant une grossesse",
         summary:
           "Le CDC rappelle l’importance de l’acide folique avant et au début de la grossesse. La recommandation générale publiée est de 400 microgrammes par jour ; certaines situations nécessitent un avis médical personnalisé.",
-        url: "https://www.cdc.gov/folic-acid/about/",
+        url: "https://www.cdc.gov/folic-acid/about/intake-and-sources.html",
       },
       {
         date: "28 novembre 2025",
@@ -189,7 +189,7 @@ const guides: Record<Goal, GoalGuide> = {
         title: "Nouvelle ligne directrice mondiale sur l’infertilité",
         summary:
           "L’OMS rappelle que les difficultés de fertilité peuvent concerner les deux partenaires et qu’elles méritent une prise en charge sans culpabilisation ni stigmatisation.",
-        url: "https://www.who.int/news-room/fact-sheets/detail/infertility",
+        url: "https://www.who.int/fr/news/item/28-11-2025-who-issues-first-global-guideline-on-infertility",
       },
     ],
     advice: [
