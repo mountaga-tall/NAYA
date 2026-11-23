@@ -246,6 +246,7 @@ const goalOptions: { value: Goal; icon: string; label: string }[] = [
 
 export default function ConseilsPage() {
   const [goal, setGoal] = useState<Goal>("TRACK");
+  const [savedGoals, setSavedGoals] = useState<Goal[]>(["TRACK"]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -257,15 +258,18 @@ export default function ConseilsPage() {
         if (!response.ok) return;
 
         const data = await response.json();
+        const validGoals: Goal[] = ["TRACK", "PREVENT", "CONCEIVE"];
         const savedGoal = data?.user?.goal;
+        const profileGoals: Goal[] = Array.isArray(data?.user?.goals)
+          ? data.user.goals.filter((value: unknown): value is Goal =>
+              typeof value === "string" && validGoals.includes(value as Goal)
+            )
+          : validGoals.includes(savedGoal) ? [savedGoal] : ["TRACK"];
+        const activeGoals = profileGoals.length > 0 ? profileGoals : ["TRACK"];
 
-        if (
-          active &&
-          (savedGoal === "TRACK" ||
-            savedGoal === "PREVENT" ||
-            savedGoal === "CONCEIVE")
-        ) {
-          setGoal(savedGoal);
+        if (active) {
+          setSavedGoals(activeGoals);
+          setGoal(activeGoals[0]);
         }
       } catch (error) {
         console.error("Impossible de charger l’objectif Naya", error);
@@ -328,7 +332,9 @@ export default function ConseilsPage() {
             })}
           </div>
           <p className="mt-3 text-xs leading-5 text-[#2C1A16]/50">
-            L’onglet ouvert par défaut correspond à l’objectif enregistré dans ton profil. Tu peux consulter les deux autres à tout moment.
+            Objectifs enregistrés dans ton profil :{" "}
+            {savedGoals.map((value) => goalOptions.find((option) => option.value === value)?.label).filter(Boolean).join(" · ")}.
+            Choisis un parcours pour afficher ses conseils. Tu peux modifier tes objectifs depuis ton profil.
           </p>
         </section>
 
