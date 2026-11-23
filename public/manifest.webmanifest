@@ -1,0 +1,19 @@
+{
+  "name": "Naya — Ton cycle, ton rythme",
+  "short_name": "Naya",
+  "description": "Suivi du cycle, journal personnel et informations de santé reproductive.",
+  "lang": "fr",
+  "start_url": "/accueil",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#FDFBF7",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

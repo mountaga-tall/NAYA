@@ -389,6 +389,17 @@ export default function ConseilsPage() {
           </p>
         </section>
 
+        <section className="mb-6 rounded-3xl border border-[#E7DDD8] bg-white p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#6B2D5C]">Côte d’Ivoire</p>
+          <h2 className="mt-2 text-lg font-bold">Où trouver des informations et des services ?</h2>
+          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/65">
+            Consulte les annonces officielles sur la planification familiale et les ressources locales. La gratuité annoncée dans le public ne garantit pas que chaque méthode soit disponible dans chaque centre au moment de ta visite.
+          </p>
+          <a href="/ressources" className="mt-4 inline-flex rounded-xl bg-[#F4D8D8] px-4 py-3 text-sm font-bold text-[#6B2D5C]">
+            Voir les ressources ivoiriennes →
+          </a>
+        </section>
+
         <section className="mb-6">
           <h2 className="mb-3 text-xl font-bold">💡 Conseils pratiques</h2>
           <div className="space-y-3">

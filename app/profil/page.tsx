@@ -15,11 +15,13 @@ type Profile = {
   goal: Goal;
   goals: Goal[];
   discreetMode: boolean;
+  remindersEnabled: boolean;
+  reminderTime: string;
 };
 
 const goalOptions: { value: Goal; label: string; description: string }[] = [
   { value: "TRACK", label: "🌸 Suivre mon cycle", description: "Comprendre mon rythme et mes symptômes." },
-  { value: "PREVENT", label: "🛡️ Éviter une grossesse", description: "Choisir une contraception adaptée ; les estimations de Naya ne protègent pas d’une grossesse." },
+  { value: "PREVENT", label: "🛡️ Éviter une grossesse", description: "M’informer sur la contraception. Les estimations de Naya ne protègent pas d’une grossesse." },
   { value: "CONCEIVE", label: "👶 Essayer de concevoir", description: "Suivre mon cycle dans un projet de conception." },
 ];
 
@@ -40,64 +42,40 @@ export default function ProfilPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let active = true;
     async function loadProfile() {
       try {
         const response = await fetch("/api/profile", { cache: "no-store" });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Impossible de récupérer le profil.");
-        setProfile(data.profile);
+        if (active) setProfile(data.profile);
       } catch {
-        setError("Impossible de charger ton profil.");
+        if (active) setError("Impossible de charger ton profil.");
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
-    loadProfile();
+    void loadProfile();
+    return () => { active = false; };
   }, []);
 
-  async function toggleDiscreetMode() {
-    if (!profile || saving || deleting || exporting) return;
-    const nextValue = !profile.discreetMode;
+  async function patchProfile(body: Record<string, unknown>) {
+    if (!profile || saving || deleting || exporting) return false;
     setSaving(true);
     setError("");
-
     try {
       const response = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ discreetMode: nextValue }),
+        body: JSON.stringify(body),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Impossible de modifier le mode d'affichage.");
+      if (!response.ok) throw new Error(data.error || "Impossible de mettre à jour le profil.");
       setProfile(data.profile);
-    } catch {
-      setError("Impossible de modifier le mode d'affichage.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateGoals(nextGoals: Goal[]) {
-    if (!profile || saving || deleting || exporting) return;
-    if (nextGoals.length === 0) {
-      setError("Garde au moins un objectif sélectionné.");
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goals: nextGoals }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Impossible de modifier tes objectifs.");
-      setProfile(data.profile);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Impossible de modifier tes objectifs.");
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de mettre à jour le profil.");
+      return false;
     } finally {
       setSaving(false);
     }
@@ -109,19 +87,61 @@ export default function ProfilPage() {
     const next = current.includes(value)
       ? current.filter((item) => item !== value)
       : [...current, value];
-    void updateGoals(next);
+    if (next.length === 0) {
+      setError("Garde au moins un objectif sélectionné.");
+      return;
+    }
+    void patchProfile({ goals: next, primaryGoal: next.includes(profile.goal) ? profile.goal : next[0] });
+  }
+
+  function setPrimaryGoal(value: Goal) {
+    if (!profile || !profile.goals.includes(value) || profile.goal === value) return;
+    void patchProfile({ primaryGoal: value });
+  }
+
+  async function toggleReminders() {
+    if (!profile || saving || deleting || exporting) return;
+    const enable = !profile.remindersEnabled;
+
+    if (enable) {
+      if (!("Notification" in window)) {
+        setError("Les notifications ne sont pas prises en charge par ce navigateur.");
+        return;
+      }
+      const permission = Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        setError("Autorise les notifications dans ton navigateur pour activer ce rappel.");
+        return;
+      }
+    }
+
+    await patchProfile({ remindersEnabled: enable, reminderTime: profile.reminderTime || "20:00" });
+  }
+
+  async function saveReminderTime() {
+    if (!profile || !/^([01]\d|2[0-3]):[0-5]\d$/.test(profile.reminderTime)) {
+      setError("Choisis une heure valide.");
+      return;
+    }
+    await patchProfile({ reminderTime: profile.reminderTime, remindersEnabled: profile.remindersEnabled });
+  }
+
+  async function toggleDiscreetMode() {
+    if (!profile) return;
+    await patchProfile({ discreetMode: !profile.discreetMode });
   }
 
   async function exportData() {
     if (saving || deleting || exporting) return;
     setExporting(true);
     setError("");
-
     try {
       const response = await fetch("/api/profile", { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Export impossible.");
-
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -142,7 +162,6 @@ export default function ProfilPage() {
     if (saving || deleting || exporting) return;
     setSaving(true);
     setError("");
-
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (!response.ok) throw new Error("Déconnexion impossible.");
@@ -159,10 +178,8 @@ export default function ProfilPage() {
     if (saving || deleting || exporting) return;
     const confirmed = window.confirm("Supprimer définitivement le compte et toutes les données associées ?");
     if (!confirmed) return;
-
     setDeleting(true);
     setError("");
-
     try {
       const response = await fetch("/api/profile", { method: "DELETE" });
       const data = await response.json();
@@ -177,11 +194,7 @@ export default function ProfilPage() {
   }
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]">
-        <div className="mx-auto max-w-md"><p className="text-sm text-[#2C1A16]/60">Chargement du profil...</p></div>
-      </main>
-    );
+    return <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 text-[#2C1A16]"><div className="mx-auto max-w-md"><p className="text-sm text-[#2C1A16]/60">Chargement du profil...</p></div></main>;
   }
 
   if (!profile) {
@@ -196,6 +209,8 @@ export default function ProfilPage() {
     );
   }
 
+  const selectedGoals = profile.goals?.length ? profile.goals : [profile.goal];
+
   return (
     <main className="min-h-screen bg-[#FDFBF7] px-6 py-8 pb-24 text-[#2C1A16]">
       <div className="mx-auto max-w-md">
@@ -204,19 +219,14 @@ export default function ProfilPage() {
           <h1 className="mt-1 text-3xl font-bold">Profil</h1>
         </header>
 
-        {error && <div className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-600">{error}</div>}
+        {error && <div role="alert" className="mb-6 rounded-2xl bg-red-50 p-4 text-sm text-red-600">{error}</div>}
 
         <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="font-bold text-[#6B2D5C]">Mon compte</h2>
           <div className="mt-4 space-y-4">
             <div><p className="text-xs text-[#2C1A16]/50">Prénom</p><p className="mt-1 font-semibold">{profile.firstName || "—"}</p></div>
             <div><p className="text-xs text-[#2C1A16]/50">Email</p><p className="mt-1 font-semibold">{profile.email || "—"}</p></div>
-            <div>
-              <p className="text-xs text-[#2C1A16]/50">Mes objectifs</p>
-              <p className="mt-1 font-semibold">
-                {(profile.goals?.length ? profile.goals : [profile.goal]).map(getGoalLabel).join(" · ")}
-              </p>
-            </div>
+            <div><p className="text-xs text-[#2C1A16]/50">Objectif principal</p><p className="mt-1 font-semibold">{getGoalLabel(profile.goal)}</p></div>
             <div><p className="text-xs text-[#2C1A16]/50">Durée moyenne du cycle</p><p className="mt-1 font-semibold">{profile.avgCycleLength} jours</p></div>
             <div><p className="text-xs text-[#2C1A16]/50">Durée moyenne des règles</p><p className="mt-1 font-semibold">{profile.avgPeriodLength} jours</p></div>
           </div>
@@ -224,35 +234,52 @@ export default function ProfilPage() {
 
         <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="font-bold text-[#6B2D5C]">Mes objectifs Naya</h2>
-          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/60">
-            Tu peux en sélectionner plusieurs et les modifier à tout moment. Garde au moins un objectif actif.
-          </p>
+          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/60">Sélectionne plusieurs objectifs si besoin, puis définis celui qui doit guider l'accueil et les conseils.</p>
           <div className="mt-4 space-y-3">
             {goalOptions.map((option) => {
-              const selected = (profile.goals?.length ? profile.goals : [profile.goal]).includes(option.value);
+              const selected = selectedGoals.includes(option.value);
+              const primary = profile.goal === option.value;
               return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => toggleGoal(option.value)}
-                  disabled={saving || deleting || exporting}
-                  aria-pressed={selected}
-                  className={`w-full rounded-2xl border p-4 text-left transition disabled:opacity-60 ${
-                    selected ? "border-[#D96C5B] bg-[#FCEBE7]" : "border-[#E7DDD8] bg-white"
-                  }`}
-                >
-                  <span className="flex items-center justify-between gap-3">
-                    <span className="font-bold">{option.label}</span>
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
-                      selected ? "border-[#D96C5B] bg-[#D96C5B] text-white" : "border-[#E7DDD8] text-transparent"
-                    }`}>✓</span>
-                  </span>
-                  <span className="mt-1 block text-sm leading-5 text-[#2C1A16]/60">{option.description}</span>
-                </button>
+                <div key={option.value} className={`rounded-2xl border p-4 ${selected ? "border-[#D96C5B] bg-[#FCEBE7]" : "border-[#E7DDD8] bg-white"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <button type="button" onClick={() => toggleGoal(option.value)} disabled={saving || deleting || exporting} aria-pressed={selected} className="flex-1 text-left disabled:opacity-60">
+                      <span className="block font-bold">{option.label}</span>
+                      <span className="mt-1 block text-sm leading-5 text-[#2C1A16]/60">{option.description}</span>
+                    </button>
+                    <button type="button" onClick={() => toggleGoal(option.value)} disabled={saving || deleting || exporting} aria-label={selected ? "Retirer cet objectif" : "Ajouter cet objectif"} aria-pressed={selected}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs ${selected ? "border-[#D96C5B] bg-[#D96C5B] text-white" : "border-[#E7DDD8] bg-white text-transparent"}`}>✓</button>
+                  </div>
+                  {selected && (
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-[#E7DDD8] pt-3">
+                      {primary ? <span className="text-xs font-bold text-[#6B2D5C]">Objectif principal</span> : <span className="text-xs text-[#2C1A16]/45">Objectif secondaire</span>}
+                      {!primary && <button type="button" onClick={() => setPrimaryGoal(option.value)} disabled={saving || deleting || exporting} className="text-xs font-bold text-[#6B2D5C] underline underline-offset-4 disabled:opacity-60">Définir comme principal</button>}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
-          {saving && <p className="mt-3 text-xs text-[#2C1A16]/50">Enregistrement de tes objectifs...</p>}
+          {saving && <p className="mt-3 text-xs text-[#2C1A16]/50">Enregistrement...</p>}
+        </section>
+
+        <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-[#6B2D5C]">Rappels discrets</h2>
+              <p className="mt-1 text-sm leading-5 text-[#2C1A16]/55">Un rappel quotidien pour penser à compléter ton journal.</p>
+            </div>
+            <button type="button" onClick={toggleReminders} disabled={saving || deleting || exporting}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition ${profile.remindersEnabled ? "bg-[#D96C5B]" : "bg-[#E7DDD8]"} disabled:opacity-60`}
+              aria-label="Activer ou désactiver les rappels" aria-pressed={profile.remindersEnabled}>
+              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${profile.remindersEnabled ? "left-6" : "left-1"}`} />
+            </button>
+          </div>
+          <label htmlFor="reminderTime" className="mt-4 block text-xs font-semibold text-[#2C1A16]/55">Heure du rappel (heure locale de ton appareil)</label>
+          <input id="reminderTime" type="time" value={profile.reminderTime || "20:00"} onChange={(event) => setProfile({ ...profile, reminderTime: event.target.value })} onBlur={saveReminderTime} disabled={saving || deleting || exporting}
+            className="mt-2 w-full rounded-2xl border border-[#E7DDD8] bg-[#FDFBF7] px-4 py-3 outline-none focus:border-[#D96C5B] disabled:opacity-60" />
+          <p className="mt-3 text-xs leading-5 text-[#2C1A16]/45">
+            Le rappel fonctionne sur cet appareil lorsque Naya est ouverte ou active dans le navigateur. Il ne s'agit pas encore d'une notification push garantie lorsque le navigateur est fermé.
+          </p>
         </section>
 
         <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
@@ -273,57 +300,33 @@ export default function ProfilPage() {
         <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
           <h2 className="font-bold text-[#6B2D5C]">Données & sécurité</h2>
           <div className="mt-4 space-y-3">
-            <button
-              type="button"
-              onClick={exportData}
-              disabled={saving || deleting || exporting}
-              className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60"
-            >
+            <button type="button" onClick={exportData} disabled={saving || deleting || exporting} className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60">
               {exporting ? "Préparation de l'export..." : "📥 Exporter mes données"}
             </button>
-
-            <button
-              type="button"
-              onClick={() => setShowSecurity((value) => !value)}
-              disabled={saving || deleting || exporting}
-              className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60"
-              aria-expanded={showSecurity}
-            >
+            <button type="button" onClick={() => setShowSecurity((value) => !value)} disabled={saving || deleting || exporting}
+              className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60" aria-expanded={showSecurity}>
               🔒 Sécurité et confidentialité
             </button>
-
             {showSecurity && (
               <div className="rounded-2xl bg-[#FDFBF7] p-4 text-sm leading-6 text-[#2C1A16]/70">
-                <p>Le mot de passe n'est pas conservé en clair : l'application enregistre un hash côté serveur.</p>
-                <p className="mt-2">La session de connexion utilise un cookie de session protégé. Les données du profil sont accessibles uniquement depuis la session connectée.</p>
+                <p>Ton mot de passe est conservé sous forme de hash sécurisé côté serveur.</p>
+                <p className="mt-2">Les données de cycle et de journal ne sont pas placées dans le cache hors connexion public de l'application.</p>
+                <p className="mt-2">Sur un téléphone partagé, pense à te déconnecter et à éviter l'affichage des notifications sensibles sur l'écran verrouillé.</p>
               </div>
             )}
-
-            <button
-              type="button"
-              onClick={deleteAccount}
-              disabled={saving || deleting || exporting}
-              className="w-full rounded-2xl border border-red-200 px-4 py-4 text-left font-semibold text-red-600 disabled:opacity-60"
-            >
+            <button type="button" onClick={deleteAccount} disabled={saving || deleting || exporting} className="w-full rounded-2xl border border-red-200 px-4 py-4 text-left font-semibold text-red-600 disabled:opacity-60">
               {deleting ? "Suppression..." : "🗑️ Supprimer mon compte et mes données"}
             </button>
-
-            <button
-              type="button"
-              onClick={logout}
-              disabled={saving || deleting || exporting}
-              className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60"
-            >
-              {saving ? "Déconnexion..." : "↪️ Se déconnecter"}
+            <button type="button" onClick={logout} disabled={saving || deleting || exporting} className="w-full rounded-2xl border border-[#E7DDD8] px-4 py-4 text-left font-semibold disabled:opacity-60">
+              {saving ? "Enregistrement..." : "↪️ Se déconnecter"}
             </button>
           </div>
         </section>
 
         <section className="rounded-3xl bg-[#F4D8D8] p-5">
           <h2 className="font-bold text-[#6B2D5C]">🌸 Notre engagement</h2>
-          <p className="mt-3 text-sm leading-6 text-[#2C1A16]/75">Tes informations personnelles restent associées à ton espace Naya. Tu peux demander leur export ou supprimer ton compte depuis cette page.</p>
+          <p className="mt-3 text-sm leading-6 text-[#2C1A16]/75">Naya te permet d'exporter tes données ou de supprimer ton compte. Tes informations de santé ne sont pas conservées dans le cache hors connexion public.</p>
         </section>
-
         <BottomNav />
       </div>
     </main>
