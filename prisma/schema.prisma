@@ -36,6 +36,7 @@ model User {
   avgCycleLength   Int        @default(28)
   avgPeriodLength  Int        @default(5)
   goal             Goal       @default(TRACK)
+  goals            Goal[]     @default([TRACK])
   discreetMode     Boolean    @default(false)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
