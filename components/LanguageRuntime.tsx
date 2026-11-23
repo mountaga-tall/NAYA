@@ -91,7 +91,7 @@ const translations: Record<string, string> = {
   "Les notifications ne sont pas prises en charge par ce navigateur.": "Notifications are not supported by this browser.",
   "Début de règles noté": "Period start recorded",
   "Durée estimée": "Estimated duration",
-  "Tu es hors connexion. Les données privées ne sont pas conservées automatiquement sur cet appareil. Reconnecte-toi pour actualiser Naya et enregistrer tes changements.": "You are offline. Private data is not automatically stored on this device. Reconnect to refresh Naya and save your changes."
+  "Tu es hors connexion. Les données privées ne sont pas conservées automatiquement sur cet appareil. Reconnecte-toi pour actualiser Naya et enregistrer tes changements.": "You are offline. Private data is not automatically stored on this device. Reconnect to refresh Naya and save your changes.",
   "Conseils": "Tips",
   "Mes objectifs": "My goals",
   "Mes objectifs Naya": "My Naya goals",
