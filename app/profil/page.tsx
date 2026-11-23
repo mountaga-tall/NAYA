@@ -4,20 +4,29 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 
+type Goal = "TRACK" | "PREVENT" | "CONCEIVE";
+
 type Profile = {
   id: string;
   firstName: string | null;
   email: string | null;
   avgCycleLength: number;
   avgPeriodLength: number;
-  goal: "TRACK" | "PREVENT" | "CONCEIVE";
+  goal: Goal;
+  goals: Goal[];
   discreetMode: boolean;
 };
 
-function getGoalLabel(goal: Profile["goal"]) {
-  if (goal === "PREVENT") return "Prévenir une grossesse";
-  if (goal === "CONCEIVE") return "Projet de conception";
-  return "Suivi du cycle";
+const goalOptions: { value: Goal; label: string; description: string }[] = [
+  { value: "TRACK", label: "🌸 Suivre mon cycle", description: "Comprendre mon rythme et mes symptômes." },
+  { value: "PREVENT", label: "🛡️ Éviter une grossesse", description: "Choisir une contraception adaptée ; les estimations de Naya ne protègent pas d’une grossesse." },
+  { value: "CONCEIVE", label: "👶 Essayer de concevoir", description: "Suivre mon cycle dans un projet de conception." },
+];
+
+function getGoalLabel(goal: Goal) {
+  if (goal === "PREVENT") return "Éviter une grossesse";
+  if (goal === "CONCEIVE") return "Essayer de concevoir";
+  return "Suivre mon cycle";
 }
 
 export default function ProfilPage() {
@@ -66,6 +75,41 @@ export default function ProfilPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function updateGoals(nextGoals: Goal[]) {
+    if (!profile || saving || deleting || exporting) return;
+    if (nextGoals.length === 0) {
+      setError("Garde au moins un objectif sélectionné.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals: nextGoals }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Impossible de modifier tes objectifs.");
+      setProfile(data.profile);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Impossible de modifier tes objectifs.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleGoal(value: Goal) {
+    if (!profile || saving || deleting || exporting) return;
+    const current = profile.goals?.length ? profile.goals : [profile.goal];
+    const next = current.includes(value)
+      ? current.filter((item) => item !== value)
+      : [...current, value];
+    void updateGoals(next);
   }
 
   async function exportData() {
@@ -167,10 +211,48 @@ export default function ProfilPage() {
           <div className="mt-4 space-y-4">
             <div><p className="text-xs text-[#2C1A16]/50">Prénom</p><p className="mt-1 font-semibold">{profile.firstName || "—"}</p></div>
             <div><p className="text-xs text-[#2C1A16]/50">Email</p><p className="mt-1 font-semibold">{profile.email || "—"}</p></div>
-            <div><p className="text-xs text-[#2C1A16]/50">Préférence</p><p className="mt-1 font-semibold">{getGoalLabel(profile.goal)}</p></div>
+            <div>
+              <p className="text-xs text-[#2C1A16]/50">Mes objectifs</p>
+              <p className="mt-1 font-semibold">
+                {(profile.goals?.length ? profile.goals : [profile.goal]).map(getGoalLabel).join(" · ")}
+              </p>
+            </div>
             <div><p className="text-xs text-[#2C1A16]/50">Durée moyenne du cycle</p><p className="mt-1 font-semibold">{profile.avgCycleLength} jours</p></div>
             <div><p className="text-xs text-[#2C1A16]/50">Durée moyenne des règles</p><p className="mt-1 font-semibold">{profile.avgPeriodLength} jours</p></div>
           </div>
+        </section>
+
+        <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
+          <h2 className="font-bold text-[#6B2D5C]">Mes objectifs Naya</h2>
+          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/60">
+            Tu peux en sélectionner plusieurs et les modifier à tout moment. Garde au moins un objectif actif.
+          </p>
+          <div className="mt-4 space-y-3">
+            {goalOptions.map((option) => {
+              const selected = (profile.goals?.length ? profile.goals : [profile.goal]).includes(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => toggleGoal(option.value)}
+                  disabled={saving || deleting || exporting}
+                  aria-pressed={selected}
+                  className={`w-full rounded-2xl border p-4 text-left transition disabled:opacity-60 ${
+                    selected ? "border-[#D96C5B] bg-[#FCEBE7]" : "border-[#E7DDD8] bg-white"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="font-bold">{option.label}</span>
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+                      selected ? "border-[#D96C5B] bg-[#D96C5B] text-white" : "border-[#E7DDD8] text-transparent"
+                    }`}>✓</span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-5 text-[#2C1A16]/60">{option.description}</span>
+                </button>
+              );
+            })}
+          </div>
+          {saving && <p className="mt-3 text-xs text-[#2C1A16]/50">Enregistrement de tes objectifs...</p>}
         </section>
 
         <section className="mb-6 rounded-3xl bg-white p-5 shadow-sm">
