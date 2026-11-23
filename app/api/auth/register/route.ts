@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const password = body.password;
     const lastPeriodDate = typeof body.lastPeriodDate === "string" ? body.lastPeriodDate : "";
     const cycleLength = Number(body.cycleLength);
-    const goal = body.goal;
+    const requestedGoals: unknown = Array.isArray(body.goals) ? body.goals : [body.goal ?? "TRACK"];
 
     if (!firstName || firstName.length > 80) {
       return Response.json({ error: "Prénom invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
@@ -50,9 +50,17 @@ export async function POST(request: Request) {
         { status: 400, headers: { "Cache-Control": "private, no-store" } }
       );
     }
-    if (!goals.includes(goal)) {
-      return Response.json({ error: "Objectif invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    if (
+      !Array.isArray(requestedGoals) ||
+      requestedGoals.length === 0 ||
+      !requestedGoals.every((value): value is (typeof goals)[number] =>
+        typeof value === "string" && goals.includes(value as (typeof goals)[number])
+      )
+    ) {
+      return Response.json({ error: "Choisis au moins un objectif valide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
+    const selectedGoals = [...new Set(requestedGoals)];
+    const primaryGoal = selectedGoals[0];
 
     const startDate = new Date(`${lastPeriodDate}T00:00:00.000Z`);
     if (Number.isNaN(startDate.getTime())) {
@@ -67,7 +75,8 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         avgCycleLength: cycleLength,
-        goal,
+        goal: primaryGoal,
+        goals: selectedGoals,
         cycles: {
           create: { startDate, isActive: true },
         },
@@ -77,7 +86,7 @@ export async function POST(request: Request) {
     await createSession(user.id);
 
     return Response.json(
-      { success: true, user: { id: user.id, firstName: user.firstName, email: user.email } },
+      { success: true, user: { id: user.id, firstName: user.firstName, email: user.email, goal: user.goal, goals: user.goals } },
       { status: 201, headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error: unknown) {
