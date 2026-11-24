@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 type ReminderProfile = {
   id?: string;
@@ -16,77 +17,87 @@ function localDateKey(date: Date) {
 }
 
 export default function ReminderRuntime() {
-  useEffect(() => {
-    let intervalId: number | undefined;
-    let stopped = false;
+  const pathname = usePathname();
 
-    async function initialise() {
+  useEffect(() => {
+    let minuteInterval: number | undefined;
+    let refreshInterval: number | undefined;
+    let stopped = false;
+    let loading = false;
+    let profile: ReminderProfile | null = null;
+
+    async function checkTime() {
+      if (stopped || !profile?.id || !profile.remindersEnabled || !profile.reminderTime) return;
       if (!("Notification" in window) || Notification.permission !== "granted") return;
 
+      const [targetHour, targetMinute] = profile.reminderTime.split(":").map(Number);
+      if (!Number.isInteger(targetHour) || !Number.isInteger(targetMinute)) return;
+
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(targetHour, targetMinute, 0, 0);
+      const elapsed = now.getTime() - target.getTime();
+      const reminderKey = "naya-reminder:" + profile.id + ":" + localDateKey(now);
+
+      // A reminder can still be shown when the user opens Naya later that day.
+      if (elapsed < 0 || elapsed > 4 * 60 * 60 * 1000 || localStorage.getItem(reminderKey)) return;
+
+      const title = "Un petit moment pour toi 🌸";
+      const options: NotificationOptions = {
+        body: "Tu peux noter ton flux, ton humeur ou tes symptômes dans ton journal Naya.",
+        icon: "/icon.svg",
+        tag: reminderKey,
+      };
+
+      const registration = "serviceWorker" in navigator
+        ? await navigator.serviceWorker.getRegistration()
+        : undefined;
+
+      if (registration) {
+        await registration.showNotification(title, options);
+      } else {
+        new Notification(title, options);
+      }
+      localStorage.setItem(reminderKey, "sent");
+    }
+
+    async function refreshPreferences() {
+      if (stopped || loading) return;
+      loading = true;
       try {
         const response = await fetch("/api/profile", { cache: "no-store" });
-        if (!response.ok) return;
-
+        if (!response.ok) {
+          profile = null;
+          return;
+        }
         const data = await response.json();
-        const profile = data?.profile as ReminderProfile | undefined;
-        if (!profile?.id || !profile.remindersEnabled || !profile.reminderTime) return;
-
-        const [targetHour, targetMinute] = profile.reminderTime.split(":").map(Number);
-        if (!Number.isInteger(targetHour) || !Number.isInteger(targetMinute)) return;
-
-        let checking = false;
-        const checkTime = async () => {
-          if (stopped || checking) return;
-          checking = true;
-
-          try {
-            const now = new Date();
-            const target = new Date(now);
-            target.setHours(targetHour, targetMinute, 0, 0);
-            const elapsed = now.getTime() - target.getTime();
-            const reminderKey = "naya-reminder:" + profile.id + ":" + localDateKey(now);
-
-            if (elapsed >= 0 && elapsed < 20 * 60 * 1000 && !localStorage.getItem(reminderKey)) {
-              const title = "Un petit moment pour toi 🌸";
-              const options: NotificationOptions = {
-                body: "Tu peux noter ton flux, ton humeur ou tes symptômes dans ton journal Naya.",
-                icon: "/icon.svg",
-                tag: reminderKey,
-              };
-
-              const registration = "serviceWorker" in navigator
-                ? await navigator.serviceWorker.getRegistration()
-                : undefined;
-
-              if (registration) {
-                await registration.showNotification(title, options);
-              } else {
-                new Notification(title, options);
-              }
-
-              localStorage.setItem(reminderKey, "sent");
-            }
-          } catch (error) {
-            console.warn("Naya reminder could not be displayed", error);
-          } finally {
-            checking = false;
-          }
-        };
-
+        profile = data?.profile as ReminderProfile | undefined ?? null;
         await checkTime();
-        intervalId = window.setInterval(checkTime, 60 * 1000);
       } catch (error) {
         console.warn("Naya reminder preferences unavailable", error);
+      } finally {
+        loading = false;
       }
     }
 
-    void initialise();
+    const onPreferencesChanged = () => { void refreshPreferences(); };
+    window.addEventListener("naya:reminders-changed", onPreferencesChanged);
+    window.addEventListener("focus", onPreferencesChanged);
+
+    void refreshPreferences();
+    minuteInterval = window.setInterval(() => {
+      void checkTime().catch((error) => console.warn("Naya reminder unavailable", error));
+    }, 60 * 1000);
+    refreshInterval = window.setInterval(onPreferencesChanged, 5 * 60 * 1000);
 
     return () => {
       stopped = true;
-      if (intervalId !== undefined) window.clearInterval(intervalId);
+      window.removeEventListener("naya:reminders-changed", onPreferencesChanged);
+      window.removeEventListener("focus", onPreferencesChanged);
+      if (minuteInterval !== undefined) window.clearInterval(minuteInterval);
+      if (refreshInterval !== undefined) window.clearInterval(refreshInterval);
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }

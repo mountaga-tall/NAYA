@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BottomNav from "@/components/BottomNav";
 
 const fluxOptions = [
@@ -46,6 +46,18 @@ function getTodayDate() {
   return year + "-" + month + "-" + day;
 }
 
+type PeriodAction = "start_period" | "end_period" | null;
+
+type ExistingLog = {
+  flow: string | null;
+  symptoms: string[];
+  mood: string | null;
+  energy: number | null;
+  sleep: number | null;
+  discharge: string | null;
+  notes: string | null;
+};
+
 export default function JournalPage() {
   const [flux, setFlux] = useState<string | null>(null);
   const [symptoms, setSymptoms] = useState<string[]>([]);
@@ -54,9 +66,38 @@ export default function JournalPage() {
   const [sleep, setSleep] = useState<number | null>(null);
   const [discharge, setDischarge] = useState("");
   const [notes, setNotes] = useState("");
+  const [periodAction, setPeriodAction] = useState<PeriodAction>(null);
+  const [loadingExisting, setLoadingExisting] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function loadToday() {
+      try {
+        const response = await fetch("/api/logs", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Impossible de charger le suivi du jour.");
+        const log = data.log as ExistingLog | null;
+        if (active && log) {
+          setFlux(log.flow);
+          setSymptoms(Array.isArray(log.symptoms) ? log.symptoms : []);
+          setMood(log.mood);
+          setEnergy(log.energy);
+          setSleep(log.sleep);
+          setDischarge(log.discharge ?? "");
+          setNotes(log.notes ?? "");
+        }
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "Impossible de charger le suivi.");
+      } finally {
+        if (active) setLoadingExisting(false);
+      }
+    }
+    void loadToday();
+    return () => { active = false; };
+  }, []);
 
   function toggleSymptom(value: string) {
     setSymptoms((current) =>
@@ -70,6 +111,7 @@ export default function JournalPage() {
     setSaving(true);
     setMessage("");
     setError("");
+    let journalSaved = false;
 
     try {
       const response = await fetch("/api/logs", {
@@ -89,15 +131,35 @@ export default function JournalPage() {
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Impossible d'enregistrer le suivi.");
+      journalSaved = true;
 
+      if (periodAction) {
+        const cycleResponse = await fetch("/api/cycle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: periodAction, date: getTodayDate() }),
+        });
+        const cycleData = await cycleResponse.json();
+        if (!cycleResponse.ok) {
+          throw new Error(cycleData.error || "Le journal est enregistré, mais le calendrier n'a pas pu être mis à jour.");
+        }
+        window.dispatchEvent(new Event("naya:cycle-updated"));
+      }
+
+      setPeriodAction(null);
       setMessage("Ton suivi a bien été enregistré dans Naya. 🌸");
     } catch (err) {
       console.error(err);
-      setError(
-        !navigator.onLine
-          ? "Tu es hors connexion. Ton journal n'a pas été envoyé : reconnecte-toi pour l'enregistrer."
-          : err instanceof Error ? err.message : "Une erreur est survenue."
-      );
+      if (journalSaved) {
+        setMessage("Ton journal est enregistré, mais l'actualisation du calendrier a échoué.");
+        setError(err instanceof Error ? err.message : "Réessaie de mettre à jour tes règles.");
+      } else {
+        setError(
+          !navigator.onLine
+            ? "Tu es hors connexion. Ton journal n'a pas été envoyé : reconnecte-toi pour l'enregistrer."
+            : err instanceof Error ? err.message : "Une erreur est survenue."
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -108,6 +170,7 @@ export default function JournalPage() {
       <div className="mx-auto max-w-md">
         <header className="mb-8">
           <p className="text-sm text-[#2C1A16]/50">Aujourd'hui · {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</p>
+          {loadingExisting && <p className="mt-2 text-xs text-[#6B2D5C]">Chargement de ton suivi existant...</p>}
           <h1 className="mt-1 text-3xl font-bold">Comment te sens-tu ?</h1>
           <p className="mt-2 text-sm leading-6 text-[#2C1A16]/60">Tu peux compléter les éléments que tu souhaites. Rien n'est obligatoire.</p>
         </header>
@@ -122,6 +185,24 @@ export default function JournalPage() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section className="mb-7 rounded-3xl bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-bold text-[#6B2D5C]">🗓️ Suivi des règles</h2>
+          <p className="mt-2 text-sm leading-6 text-[#2C1A16]/60">
+            Indique séparément si tes règles commencent ou se terminent aujourd'hui. Cela mettra à jour ton calendrier et tes estimations.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            <button type="button" aria-pressed={periodAction === "start_period"} onClick={() => setPeriodAction(periodAction === "start_period" ? null : "start_period")}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${periodAction === "start_period" ? "border-[#D96C5B] bg-[#FCEBE7] text-[#6B2D5C]" : "border-[#E7DDD8] bg-white"}`}>
+              🩸 Premier jour des règles aujourd'hui
+            </button>
+            <button type="button" aria-pressed={periodAction === "end_period"} onClick={() => setPeriodAction(periodAction === "end_period" ? null : "end_period")}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm font-semibold ${periodAction === "end_period" ? "border-[#D96C5B] bg-[#FCEBE7] text-[#6B2D5C]" : "border-[#E7DDD8] bg-white"}`}>
+              ✓ Dernier jour des règles aujourd'hui
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[#2C1A16]/45">Ces informations ne sont envoyées qu'après avoir appuyé sur « Enregistrer mon suivi ».</p>
         </section>
 
         <section className="mb-7">
@@ -189,8 +270,8 @@ export default function JournalPage() {
         {message && <div role="status" className="mb-5 rounded-2xl bg-[#EAF3ED] p-4 text-sm font-semibold text-[#35634A]">{message}</div>}
         {error && <div role="alert" className="mb-5 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-600">{error}</div>}
 
-        <button type="button" onClick={saveLog} disabled={saving} className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:opacity-60">
-          {saving ? "Enregistrement..." : "Enregistrer mon suivi"}
+        <button type="button" onClick={saveLog} disabled={saving || loadingExisting} className="w-full rounded-2xl bg-[#D96C5B] px-6 py-4 font-bold text-white shadow-lg disabled:opacity-60">
+          {saving ? "Enregistrement..." : loadingExisting ? "Chargement..." : "Enregistrer mon suivi"}
         </button>
 
         <p className="mt-4 text-center text-xs leading-5 text-[#2C1A16]/45">Tes observations sont personnelles. Elles aident à suivre ton vécu, mais ne permettent pas de poser un diagnostic.</p>

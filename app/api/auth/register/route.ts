@@ -12,6 +12,15 @@ import {
 
 const goals = ["TRACK", "PREVENT", "CONCEIVE"] as const;
 
+function isValidPastDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(value + "T00:00:00.000Z");
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return false;
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return date <= today;
+}
+
 export async function POST(request: Request) {
   try {
     if (!isSameOrigin(request)) {
@@ -41,8 +50,8 @@ export async function POST(request: Request) {
         { status: 400, headers: { "Cache-Control": "private, no-store" } }
       );
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(lastPeriodDate)) {
-      return Response.json({ error: "Date de cycle invalide." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    if (!isValidPastDate(lastPeriodDate)) {
+      return Response.json({ error: "La date des dernières règles doit être une date réelle et ne peut pas être dans le futur." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
     }
     if (!Number.isInteger(cycleLength) || cycleLength < 21 || cycleLength > 35) {
       return Response.json(

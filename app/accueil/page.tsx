@@ -157,7 +157,7 @@ export default function AccueilPage() {
   const hasTodayLog = Boolean(
     todayLog?.flow || todayLog?.mood ||
     (todayLog?.symptoms?.length ?? 0) > 0 ||
-    todayLog?.energy !== null || todayLog?.sleep !== null
+    todayLog?.energy != null || todayLog?.sleep != null
   );
 
   const daysUntil = cycleData.daysUntilNextPeriod;

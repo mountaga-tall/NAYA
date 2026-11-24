@@ -269,7 +269,11 @@ export default function ConseilsPage() {
 
         if (active) {
           setSavedGoals(activeGoals);
-          setGoal(activeGoals[0]);
+          const primaryGoal: Goal =
+            typeof savedGoal === "string" && activeGoals.includes(savedGoal as Goal)
+              ? savedGoal as Goal
+              : activeGoals[0];
+          setGoal(primaryGoal);
         }
       } catch (error) {
         console.error("Impossible de charger l’objectif Naya", error);

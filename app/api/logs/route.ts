@@ -51,6 +51,15 @@ export async function POST(request: Request) {
     }
 
     const normalizedDate = new Date(logDate + "T00:00:00.000Z");
+    const now = new Date();
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    if (
+      Number.isNaN(normalizedDate.getTime()) ||
+      normalizedDate.toISOString().slice(0, 10) !== logDate ||
+      normalizedDate > todayUtc
+    ) {
+      return Response.json({ error: "La date doit être réelle et ne peut pas être dans le futur." }, { status: 400, headers: { "Cache-Control": "private, no-store" } });
+    }
     const allowedFlows = new Set(["LIGHT", "MEDIUM", "HEAVY", "SPOTTING"]);
     const allowedMoods = new Set(["CALM", "HAPPY", "SAD", "IRRITABLE", "ANXIOUS"]);
     const allowedSymptoms = new Set([

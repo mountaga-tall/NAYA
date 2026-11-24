@@ -72,6 +72,9 @@ export default function ProfilPage() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Impossible de mettre à jour le profil.");
       setProfile(data.profile);
+      if ("remindersEnabled" in body || "reminderTime" in body) {
+        window.dispatchEvent(new Event("naya:reminders-changed"));
+      }
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de mettre à jour le profil.");
