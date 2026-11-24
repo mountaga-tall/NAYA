@@ -114,7 +114,7 @@ export async function GET() {
         nextPeriodDate,
         nextPeriodEndDate,
         daysUntilNextPeriod,
-        cycleProgressPercent: Math.min(100, Math.round((currentCycleDay / user.avgCycleLength) * 100)),
+        cycleProgressPercent: Math.min(100, Math.round((currentCycleDay / predictionCycleLength) * 100)),
         ovulationDate,
         fertileWindow,
         periods,
